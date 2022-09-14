@@ -7,8 +7,7 @@ from matplotlib import cm, colors
 import pandas as pd
 import pickle
 
-from pandarallel import pandarallel
-
+from pyspark.sql import SparkSession
 
 def read_probes(filename):
     df = pd.read_csv(filename, delim_whitespace=True)  # read as dataframe
@@ -73,18 +72,18 @@ class Probes(utils.Helper):
             probe_steps.append(probe_step)
 
             # store the pcd path and pcd reader function
-            my_dict[(probe_name, probe_step)] = (read_probes, path)
+            my_dict[(probe_name, probe_step)] = path
 
         # iterate through the upper data dict
-        my_dict = utils.MyLazyDict(my_dict)  # modify the getter lazily read in data
+        # my_dict = utils.MyLazyDict(my_dict)  # modify the getter lazily read in data
 
         self.probe_names = [*set(probe_names)]  # remove duplicates
         # remove duplicates and sort
         self.probe_steps = [*set(probe_steps)]
 
         # assume the quants and stack is the same for all probes
-        representative_dict = my_dict[(
-            self.probe_names[0], self.probe_steps[0])]
+        representative_dict = read_probes(my_dict[(
+            self.probe_names[0], self.probe_steps[0])])
         representative_dict_keys = list(
             zip(*representative_dict.keys()))  # unzip list of tuples
         # sort and remove duplicates
@@ -129,9 +128,11 @@ class Probes(utils.Helper):
         # dont use parrall for debugging, else significant speed up
         if parallel:
             # initialize(36) or initialize(os.cpu_count()-1)
-            pandarallel.initialize(progress_bar=True)
+            spark = SparkSession.builder.getOrCreate()
             # read in data directly (not indecing self.data)
-            mi_df = mi_series_sliced.parallel_apply(parallel_functions)
+            mi_spdf = spark.createDataFrame(mi_series_sliced)
+            mi_spdf = mi_spdf.apply(read_probes)
+            mi_df = mi_df.toPandas()
         else:
             mi_df = mi_series_sliced.apply(parallel_functions)
 
