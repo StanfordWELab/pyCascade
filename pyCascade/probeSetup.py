@@ -23,3 +23,6 @@ def y_col(x, z, y_range, n_probes):
     tile[:,1] = np.linspace(y_min, y_max, n_probes)
     return tile
 
+if __name__=="__main__":
+    tile = y_col(-5.3, 0, [0, 5.36], 536)
+    writeProbes(tile, 'x_water.txt')

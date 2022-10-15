@@ -9,6 +9,7 @@
 # --ustar    Friction velocity of log law
 # --UatZ     Instead of friction velocity, specify U at some altitude
 # --method   'ASCE' for the method prescribed in ASCE7, 'Stull' for the method from the Stull textbook. Defaults to ASCE
+# --multiply Factor by which to multiply the stresses
 # --filename Where to write the .dat file (other files must have standard name, so not an option)
 # --plot     Flag to plot resulting profiles
 
@@ -27,6 +28,7 @@ def main():
     parser.add_argument('--ustar', type=float, help='Friction velocity of log law')
     parser.add_argument('--UatZ', type=float, nargs=2, help='Velocity at altitude, e.g. for 10 m/s at 100 m: --UatZ 10 100')
     parser.add_argument('--method', type=str, default='ASCE', help='"ASCE" for the method prescribed in ASCE7, "Stull" for the method from the Stull textbook. Defaults to ASCE')
+    parser.add_argument('--multiply', type=float, default=1.0, help='Factor by which to multiply Reynolds stresses')
     parser.add_argument('--filename', type=str, default='inflowProfile.dat', help='Name of filename to write to')
     parser.add_argument('--plot', help='Include to plot profiles', action='store_true')
     args = parser.parse_args()
@@ -52,7 +54,7 @@ def main():
     W = np.zeros((N, ))
 
     # Turbulence intensities:
-    uu = np.power(np.divide(U, np.log(y/args.rough)), 2)
+    uu = np.power(np.divide(U, np.log(y/args.rough)), 2) * args.multiply
     vw = np.zeros((N, ))
     uw = np.zeros((N, ))
     
@@ -61,9 +63,9 @@ def main():
         ww = vv
         uv = -vv
     else:
-        vv = 0.25 * uu 
-        ww = 0.64 * uu
-        uv = -(ustar ** 2) * np.ones((N, ))
+        vv = 0.25 * uu
+        ww = 0.64 * uu 
+        uv = -(ustar ** 2) * np.ones((N, )) * args.multiply
         # Check the realizability constraint:
         realizability_cond = np.sqrt(np.multiply(uu, vv))
         uv = - np.minimum(np.abs(uv), realizability_cond)
