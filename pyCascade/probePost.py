@@ -7,6 +7,7 @@ from matplotlib import cm, colors
 import pandas as pd
 from dask import dataframe as dd
 from pandarallel import pandarallel
+import scipy as sp
 
 def read_pointcloud_probes(filename):
     return dd.read_csv(filename, delim_whitespace=True)  # read as dataframe
@@ -175,7 +176,6 @@ class Probes(utils.Helper):
 
         self.data = my_dict
         
-        
         self.data = my_dict
         
 
@@ -187,6 +187,28 @@ class Probes(utils.Helper):
             locations[probe_name] = (read_locations, location_path)
         # creating lazy dict for locations
         self.locations = utils.MyLazyDict(locations)
+
+    def power_spectrum(self, data_dict):
+        if hasattr(self, 'dt'):
+            fsamp = 1/self.dt
+        else:
+            fsamp = self.probe_times[-1]-self.probe_times[-2]
+        
+        def df_func(data_df):
+            data_df = data_df - data_df.mean(axis='index')
+            N, _ = data_df.shape
+            data_fft = sp.fft.fft(data_df, axis = 1) # take fft
+            data_fft = data_fft[:N//2+1, :] # one sided fft
+            data_fft = np.abs(data_fft)
+            data_fft = (data_fft**2)/fsamp
+
+            filter_size = int(N/500)
+            data_fft = sp.ndimage.filters.uniform_filter1d(data_fft,size = filter_size, axis = 1)
+
+            f = np.arange(0, fsamp/2, fsamp/(N+1))
+            data_fft = pd.DataFrame(data_fft, index=f)
+            return data_fft
+        return utils.dict_apply(df_func)(data_dict)
 
     def process_data(
         self, 
@@ -403,6 +425,53 @@ class Probes(utils.Helper):
                    yPlot*=plot_params['veritcal scaling']
 
                 ax.plot(xPlot, yPlot, label=f'{name}: {quant}')
+                if 'xlabel' in plot_params:
+                    fig.supxlabel(plot_params['xlabel'])
+                if 'ylabel' in plot_params:
+                    fig.supylabel(plot_params['ylabel'])
+                ax.legend()
+        
+
+        return fig, ax
+    
+    def frequency_plots(
+        self,
+        names = "self.probe_names",
+        steps = "self.probe_steps",
+        quants = "self.probe_quants",
+        stack = "np.s_[::]",
+        parrallel = False,
+        processing = None,
+        plot_params={}
+    ):
+
+        quants, stack, names, steps = [self.get_input(input) for input in [quants, stack, names, steps]]
+
+        processed_data = self.process_data(names, steps, quants, stack, processing)
+
+        st = utils.start_timer()
+
+        # plt.rcParams['text.usetex'] = True
+        fig, ax = plt.subplots(1, 1, constrained_layout =True)
+
+        for j, quant in enumerate(quants):
+            for i, name in enumerate(names):
+                plot_df = ddf_to_pdf(processed_data[(name, quant)])
+                
+                xPlot = plot_df.index
+                if 'horizontal spacing' in plot_params:
+                    xPlot *= plot_params['horizontal spacing']
+
+                if 'plot_every' in plot_params:  # usefull to plot subset of timesteps but run calcs across all timesteps
+                    name_df = plot_df.iloc[:,::plot_params['plot_every']]
+                    xPlot =xPlot[::plot_params['plot_every']]
+
+                yPlot =  np.squeeze(plot_df.values)
+                if 'veritcal scaling' in plot_params:
+                   yPlot*=plot_params['veritcal scaling']
+
+                ax.loglog(xPlot, yPlot, label=f'{name}: {quant}')
+                ax.loglog(xPlot, 0.001*xPlot**(-5/3))
                 if 'xlabel' in plot_params:
                     fig.supxlabel(plot_params['xlabel'])
                 if 'ylabel' in plot_params:
