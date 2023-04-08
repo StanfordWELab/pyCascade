@@ -195,6 +195,8 @@ class Qty():
         self.Iw_avg = None
 
     def computeQty(self, data_dict, t_data, u_str = 'comp(u,0)', v_str = 'comp(u,1)', w_str = 'comp(u,2)', p_str = 'p', calc_stats = True):
+        fsamp = t_data[-1]-t_data[-2]
+
         self.u = data_dict[u_str]
         self.v = data_dict[v_str]
         self.w = data_dict[w_str]
@@ -236,7 +238,7 @@ class Qty():
             self.Iv_avg = np.sqrt(self.vv_avg)/self.meanU
             self.Iw_avg = np.sqrt(self.ww_avg)/self.meanU
 
-            _, idx = self.p.shape
+            N, idx = self.p.shape
 
             Lx = []
             Ly = []
@@ -246,12 +248,15 @@ class Qty():
                 Ly.append(LengthScale(self.vPrime.values[:,i], self.meanV.values[i], t_data))
                 Lz.append(LengthScale(self.wPrime.values[:,i], self.meanW.values[i], t_data))
 
-            Lx, Ly, Lz = np.array(dask.compute(Lx, Ly, Lz))
+            Lx, Ly, Lz = np.array(dask.compute(Lx, Ly, Lz)) #execute the dask graph
 
             self.Lx = np.array(Lx)
             self.Ly = np.array(Ly)
             self.Lz = np.array(Lz)
 
+            self.f, self.Euu = sp.signal.welch(self.uPrime, fs = fsamp, axis = 0, nperseg = N//4, scaling = 'density', detrend = 'constant')
+
+            _, self.Epp = sp.signal.welch(self.uPrime, fs = fsamp, axis = 0, nperseg = N//4, scaling = 'density', detrend = 'constant')
 
 class Probes(utils.Helper):
     def __init__(self, directory, probe_type = "PROBES"):
