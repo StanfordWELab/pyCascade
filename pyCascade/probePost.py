@@ -5,9 +5,11 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib import cm, colors
 import pandas as pd
+import dask
 from dask import dataframe as dd
 from pandarallel import pandarallel
 import scipy as sp
+import statsmodels.api as sm
 
 def read_pointcloud_probes(filename):
     return dd.read_csv(filename, delim_whitespace=True)  # read as dataframe
@@ -40,7 +42,7 @@ def ddf_to_pdf(df):
         df = df.compute()
     return df
 
-def mean_convergence(data_dict):
+def mean_convergence(data_dict, t_data = None):
     def df_func(data_df):
         time_sum = data_df.cumsum(axis='index')
         cum_avg = time_sum.div(time_sum.index, axis='index')  # cumumlative averge
@@ -50,13 +52,13 @@ def mean_convergence(data_dict):
         data_diff_norm = np.abs(data_diff/last_avg.values)
         return data_diff_norm
 
-    return utils.dict_apply(df_func)(data_dict)
+    return utils.dict_apply(df_func)(data_dict, t_data = None)
 
-def time_average(data_dict):
+def time_average(data_dict, t_data = None):
     df_func = lambda df: df.mean(axis='index')
     return utils.dict_apply(df_func)(data_dict)
 
-def time_rms(data_dict):
+def time_rms(data_dict, t_data = None):
     def df_func(data_df):
         mean = data_df.mean(axis='index')
         norm_data = data_df - mean
@@ -67,7 +69,7 @@ def time_rms(data_dict):
     return utils.dict_apply(df_func)(data_dict)
 
 
-def ClenshawCurtis_Quadrature(data_dict):
+def ClenshawCurtis_Quadrature(data_dict, t_data = None):
     N = 10
     interval = 2.5
     xs = [np.cos((2*(N-k)-1)*np.pi/(2*N)) for k in range(N)]
@@ -97,6 +99,152 @@ def mul_names(data_dict, names, mul):
         if name in names:
             data_dict[k] = mul*v
     return data_dict
+
+def power_spectrum(data_dict, t_data):
+        fsamp = t_data[-1]-t_data[-2]
+        
+        def df_func(data_df):
+            data = data_df.values
+            N, _ = data.shape
+
+            ######Compute power spectral density without welch#####
+            # data_prime = data - data.mean(axis=0)
+            # data_fft = sp.fft.fft(data_prime, axis = 0) # take fft  
+            # data_fft = data_fft[:N//2+1, :] # one sided fft
+            # S = 1/(N*fsamp) * np.abs(data_fft)**2 # Compute power spectral density
+
+            # # Positive and negative frequencies appear twice 
+            # # (except for zero frequency and Nyquist frequency)
+            # S[1:-1] = 2*S[1:-1]
+
+            # ## Apply a uniform filter to smooth the spectrum
+            # filter_size = int(4)
+            # S = sp.ndimage.filters.uniform_filter1d(S,size = filter_size, axis = 0)
+            # f = np.arange(0,fsamp/2,fsamp/(N+1))
+            ###################################################
+
+            f, S = sp.signal.welch(data, fs = fsamp, axis = 0, nperseg = N//4, scaling = 'density', detrend = 'constant')#, noverlap = N//4)#, nfft = N)#, return_onesided = True)#, scaling = 'density')
+            
+            S_df = pd.DataFrame(S, index=f, columns=data_df.columns)
+            return S_df
+        return utils.dict_apply(df_func)(data_dict)
+
+# @dask.delayed
+def LengthScale(uPrime, meanU, time, show_plot=False):
+    """
+    Compute the length scale of the flow using the exponential fit method
+    """
+    func = lambda x, a: np.exp(-x/a) #define theoretical exponential decay function
+    time -= time[0] # shift time to start at zero
+    
+    R_u = sm.tsa.stattools.acf(uPrime, nlags = len(time)-1, fft = True) # compute autocorrelation function
+    R_uFit, _ = sp.optimize.curve_fit(func, time, R_u, p0=1, bounds = (0,np.inf)) # fit the exponential decay function to the autocorrelation function
+    t_scale = R_uFit[0] # extract the length scale from the fit
+    Lx = t_scale*meanU # compute the length scale of the flow
+
+    if show_plot == True:
+        plt.figure()
+        plt.plot(time, R_u, label = 'Autocorrelation')
+        plt.plot(time, func(time, *R_uFit), label = 'Exponential fit')
+        plt.xlabel('Time')
+        plt.ylabel('Autocorrelation')
+        plt.legend()
+
+    return Lx
+
+class Qty():
+    def __init__(self):
+        self.u = None
+        self.v = None
+        self.w = None
+        self.p = None
+
+        self.meanU = None
+        self.meanV = None
+        self.meanW = None
+        self.meanP = None
+
+        self.uPrime = None
+        self.vPrime = None
+        self.wPrime = None
+        self.pPrime = None
+
+        self.uu = None
+        self.vv = None
+        self.ww = None
+
+        self.uv = None
+        self.vw = None  
+        self.uw = None
+
+        self.Iu = None
+        self.Iv = None
+        self.Iw = None
+
+        self.uu_avg = None
+        self.vv_avg = None
+        self.ww_avg = None
+        self.pp_avg = None
+
+        self.uv_avg = None
+        self.vw_avg = None
+        self.uw_avg = None
+
+        self.Iu_avg = None
+        self.Iv_avg = None
+        self.Iw_avg = None
+
+    def computeQty(self, data_dict, t_data, u_str = 'comp(u,0)', v_str = 'comp(u,1)', w_str = 'comp(u,2)', p_str = 'p', calc_stats = True):
+        self.u = data_dict[u_str]
+        self.v = data_dict[v_str]
+        self.w = data_dict[w_str]
+        self.p = data_dict[p_str]
+
+        if calc_stats:
+            self.meanU = np.mean(self.u, axis = 'index')
+            self.meanV = np.mean(self.v, axis = 'index')
+            self.meanW = np.mean(self.w, axis = 'index')
+            self.meanP = np.mean(self.p, axis = 'index')
+
+            self.uPrime = self.u - self.meanU
+            self.vPrime = self.v - self.meanV
+            self.wPrime = self.w - self.meanW
+            self.pPrime = self.p - self.meanP
+
+            self.uu = self.uPrime**2
+            self.vv = self.vPrime**2
+            self.ww = self.wPrime**2
+
+            self.uv = self.uPrime*self.vPrime
+            self.vw = self.vPrime*self.wPrime
+            self.uw = self.uPrime*self.wPrime
+
+            self.Iu = np.sqrt(self.uu) / self.meanU
+            self.Iv = np.sqrt(self.vv) / self.meanV
+            self.Iw = np.sqrt(self.ww) / self.meanW
+
+            self.uu_avg = np.mean(self.uu, axis = 'index')
+            self.vv_avg = np.mean(self.vv, axis = 'index')
+            self.ww_avg = np.mean(self.ww, axis = 'index')
+            self.pp_avg = np.mean(self.pPrime**2, axis = 'index')
+
+            self.uv_avg = np.mean(self.uv, axis = 'index')
+            self.vw_avg = np.mean(self.vw, axis = 'index')
+            self.uw_avg = np.mean(self.uw, axis = 'index')
+
+            self.Iu_avg = np.sqrt(self.uu_avg)/self.meanU
+            self.Iv_avg = np.sqrt(self.vv_avg)/self.meanU
+            self.Iw_avg = np.sqrt(self.ww_avg)/self.meanU
+
+            _, idx = self.p.shape
+
+            self.Lx = []
+            self.Ly = []
+            self.Lz = []
+            for i in range(idx):
+                self.Lx.append(LengthScale(self.uPrime.values[:,i], self.meanU.values[i], t_data))
+                self.Ly.append(LengthScale(self.vPrime.values[:,i], self.meanV.values[i], t_data))
+                self.Lz.append(LengthScale(self.wPrime.values[:,i], self.meanW.values[i], t_data))
 
 
 
@@ -177,7 +325,8 @@ class Probes(utils.Helper):
         self.data = my_dict
         
         self.data = my_dict
-        
+
+        self.dt = self.probe_times[-1]-self.probe_times[-2]
 
     def get_locations(self, dir_locations):
         locations = {}
@@ -188,38 +337,6 @@ class Probes(utils.Helper):
         # creating lazy dict for locations
         self.locations = utils.MyLazyDict(locations)
 
-    def power_spectrum(self, data_dict):
-        if hasattr(self, 'dt'):
-            fsamp = 1/self.dt
-        else:
-            fsamp = self.probe_times[-1]-self.probe_times[-2]
-        
-        def df_func(data_df):
-            data = data_df.values
-            N, _ = data.shape
-
-            ######Compute power spectral density without welch#####
-            # data_prime = data - data.mean(axis=0)
-            # data_fft = sp.fft.fft(data_prime, axis = 0) # take fft  
-            # data_fft = data_fft[:N//2+1, :] # one sided fft
-            # S = 1/(N*fsamp) * np.abs(data_fft)**2 # Compute power spectral density
-
-            # # Positive and negative frequencies appear twice 
-            # # (except for zero frequency and Nyquist frequency)
-            # S[1:-1] = 2*S[1:-1]
-
-            # ## Apply a uniform filter to smooth the spectrum
-            # filter_size = int(4)
-            # S = sp.ndimage.filters.uniform_filter1d(S,size = filter_size, axis = 0)
-            # f = np.arange(0,fsamp/2,fsamp/(N+1))
-            ###################################################
-
-            f, S = sp.signal.welch(data, fs = fsamp, axis = 0, nperseg = N//4, scaling = 'density', detrend = 'constant')#, noverlap = N//4)#, nfft = N)#, return_onesided = True)#, scaling = 'density')
-            
-            S_df = pd.DataFrame(S, index=f, columns=data_df.columns)
-            return S_df
-        return utils.dict_apply(df_func)(data_dict)
-
     def process_data(
         self, 
         names = "self.probe_names",
@@ -229,6 +346,7 @@ class Probes(utils.Helper):
         processing = None):
 
         quants, stack, names, steps = [self.get_input(input) for input in [quants, stack, names, steps]]
+        t_data = self.probe_times[steps]
         st = utils.start_timer()
         processed_data  = {}
         for name in names:
@@ -247,10 +365,32 @@ class Probes(utils.Helper):
 
         if processing is not None:
             for process_step in processing:
-                processed_data = process_step(processed_data)
+                processed_data = process_step(processed_data, t_data)
         
         utils.end_timer(st, 'processing data')
         return processed_data
+    
+    def computeQty(
+            self, 
+            names = "self.probe_names", 
+            steps = "self.probe_steps", 
+            quants = "self.probe_quants", 
+            stack = "np.s_[::]", 
+            processing = None):
+        
+        qty_dict = {}
+        for name in names:
+            qty = Qty()
+            processed_data = self.process_data([name], steps, quants, stack, processing)
+            qty.computeQty(processed_data,
+                           self.probe_times[steps],
+                           u_str = (name, 'comp(u,0)'), 
+                           v_str = (name, 'comp(u,1)'), 
+                           w_str = (name, 'comp(u,2)'), 
+                           p_str = (name, 'p'), 
+                           calc_stats = True)
+            qty_dict[name] = qty
+        return qty_dict
 
 
     def contour_plots(
