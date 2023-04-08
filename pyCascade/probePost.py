@@ -129,7 +129,7 @@ def power_spectrum(data_dict, t_data):
             return S_df
         return utils.dict_apply(df_func)(data_dict)
 
-# @dask.delayed
+@dask.delayed
 def LengthScale(uPrime, meanU, time, show_plot=False):
     """
     Compute the length scale of the flow using the exponential fit method
@@ -238,14 +238,19 @@ class Qty():
 
             _, idx = self.p.shape
 
-            self.Lx = []
-            self.Ly = []
-            self.Lz = []
+            Lx = []
+            Ly = []
+            Lz = []
             for i in range(idx):
-                self.Lx.append(LengthScale(self.uPrime.values[:,i], self.meanU.values[i], t_data))
-                self.Ly.append(LengthScale(self.vPrime.values[:,i], self.meanV.values[i], t_data))
-                self.Lz.append(LengthScale(self.wPrime.values[:,i], self.meanW.values[i], t_data))
+                Lx.append(LengthScale(self.uPrime.values[:,i], self.meanU.values[i], t_data))
+                Ly.append(LengthScale(self.vPrime.values[:,i], self.meanV.values[i], t_data))
+                Lz.append(LengthScale(self.wPrime.values[:,i], self.meanW.values[i], t_data))
 
+            Lx, Ly, Lz = np.array(dask.compute(Lx, Ly, Lz))
+
+            self.Lx = np.array(Lx)
+            self.Ly = np.array(Ly)
+            self.Lz = np.array(Lz)
 
 
 class Probes(utils.Helper):
