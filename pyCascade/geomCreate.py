@@ -95,7 +95,6 @@ def makeRooms(x, y, z, wthick = .01, nx=1, ny=1, nz=1):
             for k in range(nz):
                 disp = (x*i + offset, y*j + offset, z*k + offset)
                 rooms_list.append(translate(disp)(cube(size, False)))
-
     rooms = sum(rooms_list)
 
     rooms_params = {
@@ -109,6 +108,32 @@ def makeRooms(x, y, z, wthick = .01, nx=1, ny=1, nz=1):
     }
 
     return ProbedGeom(rooms), rooms_params
+
+
+def identify_openings(rooms_params):
+    nx = rooms_params['nx']
+    nz = rooms_params['nz']
+
+    window_locations = []
+    door_locations = []
+
+    for i in range(nx):
+        for k in range(nz):
+            if i == 0 or i == (nx-1):
+                window_locations.append([i,k,'x'])
+            if i > 0:
+                door_locations.append([i,k,'x'])
+            if k == 0 or k == (nz-1):
+                window_locations.append([i,k,'z'])
+            if k > 0:
+                door_locations.append([i,k,'z'])
+
+    rooms_params['window_locations'] = window_locations
+    rooms_params['door_locations'] = door_locations
+    rooms_params['wall_locations'] = door_locations
+
+    return rooms_params
+
 
 def makeRoof(x_range,y_range,z_range):
     """
@@ -131,29 +156,24 @@ def makeDoors(rooms_params, w, h, nprobes_w, nprobes_h):
     y = rooms_params['y']
     z = rooms_params['z']
     wthick = rooms_params['wthick']
-    nx = rooms_params['nx']
-    ny = rooms_params['ny']
-    nz = rooms_params['nz']
+    door_locations =  rooms_params['door_locations']
 
     doors_list = []
-    for i in range(nx):
-        for k in range(nz):
-            if i > 0:
-                disp = (x*i, y/2, z*(k+.5))
-                size = (wthick*2, h, w)
-                nprobes = (1, nprobes_h, nprobes_w)
-                door = makeProbedCube(size, nprobes, f"xdoor_{i}-{k}", True)
-                door.translate(disp)
-                doors_list.append(door)
-            if k > 0:
-                disp = (x*(i+.5), y/2, z*k)
-                size = (w, h, wthick*2)
-                nprobes = (nprobes_w, nprobes_h, 1)
-                door = makeProbedCube(size, nprobes, f"zdoor_{i}-{k}", True)
-                door.translate(disp)
-                doors_list.append(door)
-
-    
+    for door_location in door_locations:
+        i, k, orientation = door_location
+        if orientation == 'x':
+            disp = (x*i, y/2, z*(k+.5))
+            size = (wthick*2, h, w)
+            nprobes = (1, nprobes_h, nprobes_w)
+            door = makeProbedCube(size, nprobes, f"xdoor_{i}-{k}", True)
+            door.translate(disp)
+        elif orientation == 'z':
+            disp = (x*(i+.5), y/2, z*k)
+            size = (w, h, wthick*2)
+            nprobes = (nprobes_w, nprobes_h, 1)
+            door = makeProbedCube(size, nprobes, f"zdoor_{i}-{k}", True)
+            door.translate(disp)
+        doors_list.append(door)
 
     return sumProbedGeom(doors_list)
 
@@ -162,26 +182,49 @@ def makeWindows(rooms_params, w, h, nprobes_w, nprobes_h):
     y = rooms_params['y']
     z = rooms_params['z']
     wthick = rooms_params['wthick']
-    nx = rooms_params['nx']
-    ny = rooms_params['ny']
-    nz = rooms_params['nz']
+    window_locations =  rooms_params['window_locations']
 
     windows_list = []
-    for i in range(nx):
-        for k in range(nz):
-            if i == 0 or i == (nx-1):
-                disp = (x*(i+(i!=0)), y/2, z*(k+.5))
-                size = (wthick*2, h, w)
-                nprobes = (1, nprobes_h, nprobes_w)
-                window = makeProbedCube(size, nprobes, f"xwindow_{i}-{k}", True)
-                window.translate(disp)
-                windows_list.append(window)
-            if k == 0 or k == (nz-1):
-                disp = (x*(i+.5), y/2, z*(k+(k!=0)))
-                size = (w, h, wthick*2)
-                nprobes = (nprobes_w, nprobes_h, 1)
-                window = makeProbedCube(size, nprobes, f"zwindow_{i}-{k}", True)
-                window.translate(disp)
-                windows_list.append(window)
+    for window_location in window_locations:
+        i, k, orientation = window_location
+        if orientation == 'x':
+            disp = (x*(i+(i!=0)), y/2, z*(k+.5))
+            size = (wthick*2, h, w)
+            nprobes = (1, nprobes_h, nprobes_w)
+            window = makeProbedCube(size, nprobes, f"xwindow_{i}-{k}", True)
+            window.translate(disp)
+        elif orientation == 'z':
+            disp = (x*(i+.5), y/2, z*(k+(k!=0)))
+            size = (w, h, wthick*2)
+            nprobes = (nprobes_w, nprobes_h, 1)
+            window = makeProbedCube(size, nprobes, f"zwindow_{i}-{k}", True)
+            window.translate(disp)
+        windows_list.append(window)
 
     return sumProbedGeom(windows_list)
+
+def openWalls(rooms_params, w, h, nprobes_w, nprobes_h):
+    x = rooms_params['x']
+    y = rooms_params['y']
+    z = rooms_params['z']
+    wthick = rooms_params['wthick']
+    wall_locations =  rooms_params['wall_locations']
+
+    walls_list = []
+    for wall_location in wall_locations:
+        i, k, orientation = wall_location
+        if orientation == 'x':
+            disp = (x*i, y/2, z*(k+.5))
+            size = (wthick*2, h, w)
+            nprobes = (1, nprobes_h, nprobes_w)
+            door = makeProbedCube(size, nprobes, f"xwall_{i}-{k}", True)
+            door.translate(disp)
+        elif orientation == 'z':
+            disp = (x*(i+.5), y/2, z*k)
+            size = (w, h, wthick*2)
+            nprobes = (nprobes_w, nprobes_h, 1)
+            door = makeProbedCube(size, nprobes, f"zwall_{i}-{k}", True)
+            door.translate(disp)
+        walls_list.append(door)
+
+    return sumProbedGeom(walls_list)
