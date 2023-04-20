@@ -169,6 +169,8 @@ class Qty():
         self.wPrime = None
         self.pPrime = None
 
+        self.prms = None
+
         self.uu = None
         self.vv = None
         self.ww = None
@@ -212,6 +214,8 @@ class Qty():
             self.vPrime = self.v - self.meanV
             self.wPrime = self.w - self.meanW
             self.pPrime = self.p - self.meanP
+
+            self.prms = np.sqrt(np.mean(self.pPrime**2, axis = 'index'))
 
             self.uu = self.uPrime**2
             self.vv = self.vPrime**2
@@ -292,17 +296,17 @@ class Probes(utils.Helper):
                 probe_info = file_name.split('.')
                 probe_name, probe_tbd1 = probe_info[:]
                 # store the pcd path and pcd reader function
-                my_dict[(probe_name, probe_tbd1)], probe_tb2, probe_time = read_probes(path)
+                my_dict[(probe_name, probe_tbd1)], probe_tbd2s, probe_time = read_probes(path)
 
 
             probe_names.append(probe_name)
             probe_tbd1s.append(probe_tbd1)
         
-        probe_tb2 = probe_tb2.compute().values
+        probe_tbd2s = probe_tbd2s.compute().values
         n_indexes = len(probe_tb2)
         probe_tbd2s, unique_steps_indexes = np.unique(np.flip(probe_tb2), return_index = True)
         unique_steps_indexes = n_indexes-1-unique_steps_indexes
-        probe_times = np.unique(probe_time.compute().values)
+        probe_times = probe_time.compute().values[unique_steps_indexes]
 
         self.data = my_dict
 
