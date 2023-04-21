@@ -250,13 +250,15 @@ class Probes(utils.Helper):
         utils.end_timer(st, 'processing data')
         return processed_data
     
-    def computeQty(
+    def create_qty_dict(
             self, 
             names = "self.probe_names", 
             steps = "self.probe_steps", 
             quants = "self.probe_quants", 
             stack = "np.s_[::]", 
             processing = None):
+        
+        quants, stack, names, steps = [self.get_input(input) for input in [quants, stack, names, steps]]
         
         qty_dict = {}
         for name in names:
