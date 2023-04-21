@@ -98,36 +98,6 @@ def mul_names(data_dict, names, mul):
             data_dict[k] = mul*v
     return data_dict
 
-def power_spectrum(data_dict, t_data):
-        fsamp = 1/(t_data[-1]-t_data[-2])
-        
-        def df_func(data_df):
-            data = data_df.values
-            N, _ = data.shape
-
-            ######Compute power spectral density without welch#####
-            # data_prime = data - data.mean(axis=0)
-            # data_fft = sp.fft.fft(data_prime, axis = 0) # take fft  
-            # data_fft = data_fft[:N//2+1, :] # one sided fft
-            # S = 1/(N*fsamp) * np.abs(data_fft)**2 # Compute power spectral density
-
-            # # Positive and negative frequencies appear twice 
-            # # (except for zero frequency and Nyquist frequency)
-            # S[1:-1] = 2*S[1:-1]
-
-            # ## Apply a uniform filter to smooth the spectrum
-            # filter_size = int(4)
-            # S = sp.ndimage.filters.uniform_filter1d(S,size = filter_size, axis = 0)
-            # f = np.arange(0,fsamp/2,fsamp/(N+1))
-            ###################################################
-
-            f, S = sp.signal.welch(data, fs = fsamp, axis = 0, nperseg = N//4, scaling = 'density', detrend = 'constant')#, noverlap = N//4)#, nfft = N)#, return_onesided = True)#, scaling = 'density')
-            
-            S_df = pd.DataFrame(S, index=f, columns=data_df.columns)
-            return S_df
-        return utils.dict_apply(df_func)(data_dict)
-
-
 class Probes(utils.Helper):
     def __init__(self, directory, probe_type = "PROBES"):
         """
