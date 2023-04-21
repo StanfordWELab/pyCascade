@@ -150,10 +150,9 @@ def plot_ABL(qty_dict: dict, fit_disp = False):
 
     # fit log law to find uStar, z0, disp
     kappa = 0.41
-    cID = 0
-    for name, qty in qty_dict.items():
+    for i, (name, qty) in enumerate(qty_dict.items()):
         y = qty.y #get the height of the probes
-        ax.plot(qty.meanU, y, f'{colors[cID]}o', label=f'{name}')
+        ax.plot(qty.meanU, y, f'{colors[i]}o', label=f'{name}')
 
         c0, c1 = np.polyfit(qty.meanU, np.log(y), 1) #fit a line to the log of the height
         uStar = kappa/c0 #get uStar from the slope
@@ -165,9 +164,7 @@ def plot_ABL(qty_dict: dict, fit_disp = False):
             uStar, z0, disp = popt
             
         y_plot = np.linspace(0, y[-1], 100)
-        ax.plot(physics.loglaw_with_disp(y_plot, uStar, z0, disp), y_plot, f'{colors[cID]}-')
-
-        cID+=1
+        ax.plot(physics.loglaw_with_disp(y_plot, uStar, z0, disp), y_plot, f'{colors[i]}-')
 
     ax.set_xlabel('mean velocity [m/s]')
     ax.set_ylabel('height [m]')
