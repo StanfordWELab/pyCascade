@@ -99,7 +99,7 @@ def mul_names(data_dict, names, mul):
     return data_dict
 
 def power_spectrum(data_dict, t_data):
-        fsamp = t_data[-1]-t_data[-2]
+        fsamp = 1/(t_data[-1]-t_data[-2])
         
         def df_func(data_df):
             data = data_df.values
