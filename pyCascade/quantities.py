@@ -144,7 +144,7 @@ class Qty(utils.Helper):
     def set_y(self, y):
         self.y = y
 
-def plot_ABL(qty_dict: dict):
+def plot_ABL(qty_dict: dict, fit_disp = False):
     fig, ax = plt.subplots()
     colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w']
 
@@ -160,9 +160,11 @@ def plot_ABL(qty_dict: dict):
         z0 = np.exp(c1) #get z0 from the intercept
         disp = 0
 
-        popt, _ = curve_fit(physics.loglaw_with_disp, y, qty.meanU, p0=[uStar, z0, disp], bounds=((0,0,0),(np.inf,np.inf,np.inf)), method='dogbox') #fit the log law with displacement
+        if fit_disp == True:
+            popt, _ = curve_fit(physics.loglaw_with_disp, y, qty.meanU, p0=[uStar, z0, disp], bounds=((0,0,0),(np.inf,np.inf,np.inf)), method='dogbox') #fit the log law with displacement
+            uStar, z0, disp = popt
+            
         y_plot = np.linspace(0, y[-1], 100)
-        uStar, z0, disp = popt
         ax.plot(physics.loglaw_with_disp(y_plot, uStar, z0, disp), y_plot, f'{colors[cID]}-')
 
         cID+=1
