@@ -254,12 +254,13 @@ def plot_prms(qty_dict: dict):
     ax.legend()
     return fig, ax
 
-def plot_power_spectra(qty_dict: dict):
+def plot_power_spectra(qty_dict: dict, interial_offset = 10**(-1)):
     fig, ax = plt.subplots()
     for i, (name, qty) in enumerate(qty_dict.items()):
         y = qty.y
         for j, yval in enumerate(y):
             ax.loglog(qty.f, qty.Euu[:,j], '-', label = f'y = {name}, y={yval:.0f} [m]')
+    ax.loglog(qty.f, interial_offset*qty.f**(-5/3), label = '-5/3')
     ax.legend()
     ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     ax.set_xlabel("frequency $[1/s]$")
