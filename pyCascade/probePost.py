@@ -466,53 +466,6 @@ class Probes(utils.Helper):
         
 
         return fig, ax
-    
-    def frequency_plots(
-        self,
-        names = "self.probe_names",
-        steps = "self.probe_steps",
-        quants = "self.probe_quants",
-        stack = "np.s_[::]",
-        parrallel = False,
-        processing = None,
-        plot_params={}
-    ):
-
-        quants, stack, names, steps = [self.get_input(input) for input in [quants, stack, names, steps]]
-
-        processed_data = self.process_data(names, steps, quants, stack, processing)
-
-        st = utils.start_timer()
-
-        # plt.rcParams['text.usetex'] = True
-        fig, ax = plt.subplots(1, 1, constrained_layout =True)
-
-        for j, quant in enumerate(quants):
-            for i, name in enumerate(names):
-                plot_df = ddf_to_pdf(processed_data[(name, quant)])
-                
-                xPlot = plot_df.index
-                if 'horizontal spacing' in plot_params:
-                    xPlot *= plot_params['horizontal spacing']
-
-                if 'plot_every' in plot_params:  # usefull to plot subset of timesteps but run calcs across all timesteps
-                    name_df = plot_df.iloc[:,::plot_params['plot_every']]
-                    xPlot =xPlot[::plot_params['plot_every']]
-
-                yPlot =  np.squeeze(plot_df.values)
-                if 'veritcal scaling' in plot_params:
-                   yPlot*=plot_params['veritcal scaling']
-
-                ax.loglog(xPlot, yPlot, label=f'{name}: {quant}')
-                ax.loglog(xPlot, 0.001*xPlot**(-5/3))
-                if 'xlabel' in plot_params:
-                    fig.supxlabel(plot_params['xlabel'])
-                if 'ylabel' in plot_params:
-                    fig.supylabel(plot_params['ylabel'])
-                ax.legend()
-        
-
-        return fig, ax
 
     def statistics(
         self,
