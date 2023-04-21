@@ -2,6 +2,14 @@ import numpy as np
 from pyCascade import utils
 from matplotlib import pyplot as plt
 
+def loglaw_with_disp(z, uStar, z0, disp):
+    vK_const = .41
+    z_scaled = (z - disp)/z0
+    z_scaled[z_scaled<1] = 1
+
+    log_wind = (uStar/vK_const)*np.log(z_scaled)
+    return log_wind
+
 
 class LES_Physics(utils.Helper):
     def __init__(self, LES_params = {}):
@@ -14,21 +22,17 @@ class LES_Physics(utils.Helper):
         uStar = "self.LES_params['uStar']", 
         z0 = "self.LES_params['z0']", 
         disp = "self.LES_params['disp']", 
-        vK_const = "self.LES_params['vK_const']",
         z_values = "self.LES_params['z_values']",
         ):
 
-        uStar, z0, disp, vK_const, z_values = [self.get_input(input) for input in [uStar, z0, disp, vK_const, z_values]]
+        uStar, z0, disp, z_values = [self.get_input(input) for input in [uStar, z0, disp, z_values]]
 
-        z_scaled = (z_values - disp)/z0
-        z_scaled[z_scaled<1] = 1
-
-        log_wind = (uStar/vK_const)*np.log(z_scaled)
+        log_wind = loglaw_with_disp(z_values, uStar, z0, disp)
         plt.plot(log_wind, z_values)
         plt.xlabel('velocity')
         plt.ylabel('height [m]')
 
-        for key in ['uStar', 'z0', 'disp', 'vK_const', 'z_values', 'log_wind']:
+        for key in ['uStar', 'z0', 'disp', 'z_values', 'log_wind']:
             self.LES_params[key] = eval(key) #save params
 
     def calc_flatplate_quantities(
