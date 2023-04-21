@@ -31,6 +31,8 @@ def LengthScale(uPrime, meanU, time, show_plot=False):
 
 class Qty(utils.Helper):
     def __init__(self):
+        self.fsamp = None
+
         self.u = None
         self.v = None
         self.w = None
@@ -76,7 +78,7 @@ class Qty(utils.Helper):
         self.y = None
 
     def computeQty(self, data_dict, t_data, u_str = 'comp(u,0)', v_str = 'comp(u,1)', w_str = 'comp(u,2)', p_str = 'p', calc_stats = True):
-        fsamp = t_data[-1]-t_data[-2]
+        self.fsamp = 1/(t_data[-1]-t_data[-2])
 
         self.u = data_dict[u_str]
         self.v = data_dict[v_str]
@@ -137,9 +139,9 @@ class Qty(utils.Helper):
             self.Ly = np.array(Ly)
             self.Lz = np.array(Lz)
 
-            self.f, self.Euu = sp.signal.welch(self.uPrime, fs = fsamp, axis = 0, nperseg = N//4, scaling = 'density', detrend = 'constant')
+            self.f, self.Euu = sp.signal.welch(self.uPrime, fs = self.fsamp, axis = 0, nperseg = N//4, scaling = 'density', detrend = 'constant')
 
-            _, self.Epp = sp.signal.welch(self.uPrime, fs = fsamp, axis = 0, nperseg = N//4, scaling = 'density', detrend = 'constant')
+            _, self.Epp = sp.signal.welch(self.uPrime, fs = self.fsamp, axis = 0, nperseg = N//4, scaling = 'density', detrend = 'constant')
 
     def set_y(self, y):
         self.y = y
@@ -193,7 +195,6 @@ def plot_length_scales(qty_dict: dict):
     ax[2].legend()
     # place legend outside of plot
     ax[2].legend(loc='center left', bbox_to_anchor=(1, 0.5))
-
     return fig, ax
 
 def plot_reynolds_stresses(qty_dict: dict):
@@ -224,7 +225,6 @@ def plot_reynolds_stresses(qty_dict: dict):
     #place legend outside of plot
     box = ax[1,2].get_position()
     ax[1,2].legend(loc='center left', bbox_to_anchor=(1, 0.5))
-
     return fig, ax
 
 def plot_turbulence_intensities(qty_dict: dict):
@@ -241,7 +241,6 @@ def plot_turbulence_intensities(qty_dict: dict):
     ax[0].set_xlabel('Iu')
     ax[1].set_xlabel('Iv')
     ax[2].set_xlabel('Iw')
-
     return fig, ax
 
 def plot_prms(qty_dict: dict):
@@ -253,5 +252,17 @@ def plot_prms(qty_dict: dict):
     ax.set_ylabel('y [m]')
     ax.set_xlabel('Prms [Pa]')
     ax.legend()
+    return fig, ax
 
+def plot_power_spectra(qty_dict: dict):
+    fig, ax = plt.subplots()
+    for i, (name, qty) in enumerate(qty_dict.items()):
+        y = qty.y
+        for j, yval in enumerate(y):
+            ax.loglog(qty.f, qty.Euu[:,j], '-', label = f'y = {name}, y={yval:.0f} [m]')
+    ax.legend()
+    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    ax.set_xlabel("frequency $[1/s]$")
+    ax.set_ylabel("$E_u [m^3/s^2]$")
+    plt.tight_layout()
     return fig, ax
