@@ -1,22 +1,20 @@
-from pyCascade import utils
+from pyCascade import utils, quantities
 
 import glob
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib import cm, colors
 import pandas as pd
-import dask
 from dask import dataframe as dd
 from pandarallel import pandarallel
 import scipy as sp
-import statsmodels.api as sm
 
 def read_pointcloud_probes(filename):
     return dd.read_csv(filename, delim_whitespace=True)  # read as dataframe
 
 def read_probes(filename):
-    ddf = dd.read_csv(filename, delimiter = ' ', comment = "#",header = None)
-    step_index = ddf.iloc[:, 0] #grab the second column for the times
+    ddf = dd.read_csv(filename, delimiter = ' ', comment = "#",header = None, assume_missing=True)
+    step_index = ddf.iloc[:, 0] #grab the first column for the indixes
     time_index = ddf.iloc[:, 1] #grab the second column for the times
     ddf = ddf.iloc[:, 3:] #take the data less the index rows
 
@@ -100,164 +98,6 @@ def mul_names(data_dict, names, mul):
             data_dict[k] = mul*v
     return data_dict
 
-def power_spectrum(data_dict, t_data):
-        fsamp = t_data[-1]-t_data[-2]
-        
-        def df_func(data_df):
-            data = data_df.values
-            N, _ = data.shape
-
-            ######Compute power spectral density without welch#####
-            # data_prime = data - data.mean(axis=0)
-            # data_fft = sp.fft.fft(data_prime, axis = 0) # take fft  
-            # data_fft = data_fft[:N//2+1, :] # one sided fft
-            # S = 1/(N*fsamp) * np.abs(data_fft)**2 # Compute power spectral density
-
-            # # Positive and negative frequencies appear twice 
-            # # (except for zero frequency and Nyquist frequency)
-            # S[1:-1] = 2*S[1:-1]
-
-            # ## Apply a uniform filter to smooth the spectrum
-            # filter_size = int(4)
-            # S = sp.ndimage.filters.uniform_filter1d(S,size = filter_size, axis = 0)
-            # f = np.arange(0,fsamp/2,fsamp/(N+1))
-            ###################################################
-
-            f, S = sp.signal.welch(data, fs = fsamp, axis = 0, nperseg = N//4, scaling = 'density', detrend = 'constant')#, noverlap = N//4)#, nfft = N)#, return_onesided = True)#, scaling = 'density')
-            
-            S_df = pd.DataFrame(S, index=f, columns=data_df.columns)
-            return S_df
-        return utils.dict_apply(df_func)(data_dict)
-
-@dask.delayed
-def LengthScale(uPrime, meanU, time, show_plot=False):
-    """
-    Compute the length scale of the flow using the exponential fit method
-    """
-    func = lambda x, a: np.exp(-x/a) #define theoretical exponential decay function
-    time -= time[0] # shift time to start at zero
-    
-    R_u = sm.tsa.stattools.acf(uPrime, nlags = len(time)-1, fft = True) # compute autocorrelation function
-    R_uFit, _ = sp.optimize.curve_fit(func, time, R_u, p0=1, bounds = (0,np.inf)) # fit the exponential decay function to the autocorrelation function
-    t_scale = R_uFit[0] # extract the length scale from the fit
-    Lx = t_scale*meanU # compute the length scale of the flow
-
-    if show_plot == True:
-        plt.figure()
-        plt.plot(time, R_u, label = 'Autocorrelation')
-        plt.plot(time, func(time, *R_uFit), label = 'Exponential fit')
-        plt.xlabel('Time')
-        plt.ylabel('Autocorrelation')
-        plt.legend()
-
-    return Lx
-
-class Qty():
-    def __init__(self):
-        self.u = None
-        self.v = None
-        self.w = None
-        self.p = None
-
-        self.meanU = None
-        self.meanV = None
-        self.meanW = None
-        self.meanP = None
-
-        self.uPrime = None
-        self.vPrime = None
-        self.wPrime = None
-        self.pPrime = None
-
-        self.uu = None
-        self.vv = None
-        self.ww = None
-
-        self.uv = None
-        self.vw = None  
-        self.uw = None
-
-        self.Iu = None
-        self.Iv = None
-        self.Iw = None
-
-        self.uu_avg = None
-        self.vv_avg = None
-        self.ww_avg = None
-        self.pp_avg = None
-
-        self.uv_avg = None
-        self.vw_avg = None
-        self.uw_avg = None
-
-        self.Iu_avg = None
-        self.Iv_avg = None
-        self.Iw_avg = None
-
-    def computeQty(self, data_dict, t_data, u_str = 'comp(u,0)', v_str = 'comp(u,1)', w_str = 'comp(u,2)', p_str = 'p', calc_stats = True):
-        fsamp = t_data[-1]-t_data[-2]
-
-        self.u = data_dict[u_str]
-        self.v = data_dict[v_str]
-        self.w = data_dict[w_str]
-        self.p = data_dict[p_str]
-
-        if calc_stats:
-            self.meanU = np.mean(self.u, axis = 'index')
-            self.meanV = np.mean(self.v, axis = 'index')
-            self.meanW = np.mean(self.w, axis = 'index')
-            self.meanP = np.mean(self.p, axis = 'index')
-
-            self.uPrime = self.u - self.meanU
-            self.vPrime = self.v - self.meanV
-            self.wPrime = self.w - self.meanW
-            self.pPrime = self.p - self.meanP
-
-            self.uu = self.uPrime**2
-            self.vv = self.vPrime**2
-            self.ww = self.wPrime**2
-
-            self.uv = self.uPrime*self.vPrime
-            self.vw = self.vPrime*self.wPrime
-            self.uw = self.uPrime*self.wPrime
-
-            self.Iu = np.sqrt(self.uu) / self.meanU
-            self.Iv = np.sqrt(self.vv) / self.meanV
-            self.Iw = np.sqrt(self.ww) / self.meanW
-
-            self.uu_avg = np.mean(self.uu, axis = 'index')
-            self.vv_avg = np.mean(self.vv, axis = 'index')
-            self.ww_avg = np.mean(self.ww, axis = 'index')
-            self.pp_avg = np.mean(self.pPrime**2, axis = 'index')
-
-            self.uv_avg = np.mean(self.uv, axis = 'index')
-            self.vw_avg = np.mean(self.vw, axis = 'index')
-            self.uw_avg = np.mean(self.uw, axis = 'index')
-
-            self.Iu_avg = np.sqrt(self.uu_avg)/self.meanU
-            self.Iv_avg = np.sqrt(self.vv_avg)/self.meanU
-            self.Iw_avg = np.sqrt(self.ww_avg)/self.meanU
-
-            N, idx = self.p.shape
-
-            Lx = []
-            Ly = []
-            Lz = []
-            for i in range(idx):
-                Lx.append(LengthScale(self.uPrime.values[:,i], self.meanU.values[i], t_data))
-                Ly.append(LengthScale(self.vPrime.values[:,i], self.meanV.values[i], t_data))
-                Lz.append(LengthScale(self.wPrime.values[:,i], self.meanW.values[i], t_data))
-
-            Lx, Ly, Lz = np.array(dask.compute(Lx, Ly, Lz)) #execute the dask graph
-
-            self.Lx = np.array(Lx)
-            self.Ly = np.array(Ly)
-            self.Lz = np.array(Lz)
-
-            self.f, self.Euu = sp.signal.welch(self.uPrime, fs = fsamp, axis = 0, nperseg = N//4, scaling = 'density', detrend = 'constant')
-
-            _, self.Epp = sp.signal.welch(self.uPrime, fs = fsamp, axis = 0, nperseg = N//4, scaling = 'density', detrend = 'constant')
-
 class Probes(utils.Helper):
     def __init__(self, directory, probe_type = "PROBES"):
         """
@@ -292,17 +132,17 @@ class Probes(utils.Helper):
                 probe_info = file_name.split('.')
                 probe_name, probe_tbd1 = probe_info[:]
                 # store the pcd path and pcd reader function
-                my_dict[(probe_name, probe_tbd1)], probe_tb2, probe_time = read_probes(path)
+                my_dict[(probe_name, probe_tbd1)], probe_tbd2s, probe_time = read_probes(path)
 
 
             probe_names.append(probe_name)
             probe_tbd1s.append(probe_tbd1)
         
-        probe_tb2 = probe_tb2.compute().values
-        n_indexes = len(probe_tb2)
-        probe_tbd2s, unique_steps_indexes = np.unique(np.flip(probe_tb2), return_index = True)
+        probe_tbd2s = probe_tbd2s.compute().values
+        n_indexes = len(probe_tbd2s)
+        probe_tbd2s, unique_steps_indexes = np.unique(np.flip(probe_tbd2s), return_index = True)
         unique_steps_indexes = n_indexes-1-unique_steps_indexes
-        probe_times = np.unique(probe_time.compute().values)
+        probe_times = probe_time.compute().values[unique_steps_indexes]
 
         self.data = my_dict
 
@@ -380,7 +220,7 @@ class Probes(utils.Helper):
         utils.end_timer(st, 'processing data')
         return processed_data
     
-    def computeQty(
+    def create_qty_dict(
             self, 
             names = "self.probe_names", 
             steps = "self.probe_steps", 
@@ -388,9 +228,11 @@ class Probes(utils.Helper):
             stack = "np.s_[::]", 
             processing = None):
         
+        quants, stack, names, steps = [self.get_input(input) for input in [quants, stack, names, steps]]
+        
         qty_dict = {}
         for name in names:
-            qty = Qty()
+            qty = quantities.Qty()
             processed_data = self.process_data([name], steps, quants, stack, processing)
             qty.computeQty(processed_data,
                            self.probe_times[steps],
@@ -399,6 +241,7 @@ class Probes(utils.Helper):
                            w_str = (name, 'comp(u,2)'), 
                            p_str = (name, 'p'), 
                            calc_stats = True)
+            qty.set_y(self.locations[name]['y'].values[stack])
             qty_dict[name] = qty
         return qty_dict
 
@@ -585,53 +428,6 @@ class Probes(utils.Helper):
                    yPlot*=plot_params['veritcal scaling']
 
                 ax.plot(xPlot, yPlot, label=f'{name}: {quant}')
-                if 'xlabel' in plot_params:
-                    fig.supxlabel(plot_params['xlabel'])
-                if 'ylabel' in plot_params:
-                    fig.supylabel(plot_params['ylabel'])
-                ax.legend()
-        
-
-        return fig, ax
-    
-    def frequency_plots(
-        self,
-        names = "self.probe_names",
-        steps = "self.probe_steps",
-        quants = "self.probe_quants",
-        stack = "np.s_[::]",
-        parrallel = False,
-        processing = None,
-        plot_params={}
-    ):
-
-        quants, stack, names, steps = [self.get_input(input) for input in [quants, stack, names, steps]]
-
-        processed_data = self.process_data(names, steps, quants, stack, processing)
-
-        st = utils.start_timer()
-
-        # plt.rcParams['text.usetex'] = True
-        fig, ax = plt.subplots(1, 1, constrained_layout =True)
-
-        for j, quant in enumerate(quants):
-            for i, name in enumerate(names):
-                plot_df = ddf_to_pdf(processed_data[(name, quant)])
-                
-                xPlot = plot_df.index
-                if 'horizontal spacing' in plot_params:
-                    xPlot *= plot_params['horizontal spacing']
-
-                if 'plot_every' in plot_params:  # usefull to plot subset of timesteps but run calcs across all timesteps
-                    name_df = plot_df.iloc[:,::plot_params['plot_every']]
-                    xPlot =xPlot[::plot_params['plot_every']]
-
-                yPlot =  np.squeeze(plot_df.values)
-                if 'veritcal scaling' in plot_params:
-                   yPlot*=plot_params['veritcal scaling']
-
-                ax.loglog(xPlot, yPlot, label=f'{name}: {quant}')
-                ax.loglog(xPlot, 0.001*xPlot**(-5/3))
                 if 'xlabel' in plot_params:
                     fig.supxlabel(plot_params['xlabel'])
                 if 'ylabel' in plot_params:
