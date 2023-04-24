@@ -130,8 +130,8 @@ class Qty(utils.Helper):
             Lz = []
             for i in range(idx):
                 Lx.append(LengthScale(self.uPrime.values[:,i], self.meanU.values[i], t_data))
-                Ly.append(LengthScale(self.vPrime.values[:,i], self.meanV.values[i], t_data))
-                Lz.append(LengthScale(self.wPrime.values[:,i], self.meanW.values[i], t_data))
+                Ly.append(LengthScale(self.vPrime.values[:,i], self.meanU.values[i], t_data))
+                Lz.append(LengthScale(self.wPrime.values[:,i], self.meanU.values[i], t_data))
 
             Lx, Ly, Lz = np.array(dask.compute(Lx, Ly, Lz)) #execute the dask graph
 
