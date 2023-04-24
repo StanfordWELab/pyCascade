@@ -13,7 +13,7 @@ def read_pointcloud_probes(filename):
     return dd.read_csv(filename, delim_whitespace=True)  # read as dataframe
 
 def read_probes(filename):
-    ddf = dd.read_csv(filename, delimiter = ' ', comment = "#",header = None)
+    ddf = dd.read_csv(filename, delimiter = ' ', comment = "#",header = None, assume_missing=True)
     step_index = ddf.iloc[:, 0] #grab the first column for the indixes
     time_index = ddf.iloc[:, 1] #grab the second column for the times
     ddf = ddf.iloc[:, 3:] #take the data less the index rows
