@@ -196,7 +196,8 @@ class Probes(utils.Helper):
         processing = None):
 
         quants, stack, names, steps = [self.get_input(input) for input in [quants, stack, names, steps]]
-        t_data = self.probe_times[steps]
+        t_df = pd.Series(self.probe_times, index=self.probe_steps)
+        t_data = t_df.loc[steps]
         st = utils.start_timer()
         processed_data  = {}
         for name in names:
