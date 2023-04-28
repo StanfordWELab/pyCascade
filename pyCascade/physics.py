@@ -107,7 +107,34 @@ class LES_Physics(utils.Helper):
         plt.xlabel('velocity')
         plt.ylabel('height [m]')
 
-        for key in ['log_wind', 'z_values', 'u_bulk']:
+        for key in ['log_wind', 'z_values', 'u_bulk', 'spinup_profile']:
+            self.LES_params[key] = eval(key) #save params
+
+    def plot_spinup_velocity2(        
+        self, 
+        uStar = "self.LES_params['uStar']", 
+        z0 = "self.LES_params['z0']", 
+        disp = "self.LES_params['disp']", 
+        z_values = "self.LES_params['z_values']",
+        ):
+
+        uStar, z0, disp, z_values = [self.get_input(input) for input in [uStar, z0, disp, z_values]]
+
+        H = np.max(z_values)
+        H_scaled = H - disp
+        vK_const = 0.41
+        u_bulk = uStar/vK_const*(H_scaled*np.log(H_scaled/z0) - H_scaled + 1)/H
+
+        print(f'u_bulk is {u_bulk}')
+        print(f'domain height is {H}')
+
+        spinup_profile2 = 2*(loglaw_with_disp(z_values, uStar, z0, disp) - u_bulk*(z_values/H))
+
+        plt.plot(spinup_profile2, z_values)
+        plt.xlabel('velocity')
+        plt.ylabel('height [m]')
+
+        for key in ['z_values', 'u_bulk', 'spinup_profile2']:
             self.LES_params[key] = eval(key) #save params
 
         
