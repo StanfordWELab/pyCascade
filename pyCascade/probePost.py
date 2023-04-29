@@ -50,7 +50,7 @@ def mean_convergence(data_dict, t_data = None):
         data_diff_norm = np.abs(data_diff/last_avg.values)
         return data_diff_norm
 
-    return utils.dict_apply(df_func)(data_dict, t_data = None)
+    return utils.dict_apply(df_func)(data_dict)
 
 def time_average(data_dict, t_data = None):
     df_func = lambda df: df.mean(axis='index')
