@@ -1,4 +1,4 @@
-from solid import *
+from solid2 import *
 import numpy as np
 from pyCascade import probeSetup
 # from numpy.polynomial import chebyshev as cheb
@@ -95,7 +95,7 @@ def makeRooms(x, y, z, wthick = .01, nx=1, ny=1, nz=1):
             for k in range(nz):
                 disp = (x*i + offset, y*j + offset, z*k + offset)
                 rooms_list.append(translate(disp)(cube(size, False)))
-    rooms = sum(rooms_list)
+    rooms = np.sum(rooms_list)
 
     rooms_params = {
         'x': x,
