@@ -116,6 +116,7 @@ def identify_openings(rooms_params):
 
     window_locations = []
     door_locations = []
+    skylight_locations = []
 
     for i in range(nx):
         for k in range(nz):
@@ -127,10 +128,12 @@ def identify_openings(rooms_params):
                 window_locations.append([i,k,'z'])
             if k > 0:
                 door_locations.append([i,k,'z'])
+            skylight_locations.append([i,k])
 
     rooms_params['window_locations'] = window_locations
     rooms_params['door_locations'] = door_locations
     rooms_params['wall_locations'] = door_locations
+    rooms_params['skylight_locations'] = skylight_locations
 
     return rooms_params
 
@@ -228,3 +231,22 @@ def openWalls(rooms_params, w, h, nprobes_w, nprobes_h):
         walls_list.append(door)
 
     return sumProbedGeom(walls_list)
+
+def makeSkylights(rooms_params, w, h, nprobes_w, nprobes_h):
+    x = rooms_params['x']
+    y = rooms_params['y']
+    z = rooms_params['z']
+    wthick = z*.5
+    skylight_locations =  rooms_params['skylight_locations']
+
+    skylights_list = []
+    for skylight_location in skylight_locations:
+        i, k = skylight_location
+        disp = (x*(i+.5), y, z*(k+.5))
+        size = (w, wthick*2, h)
+        nprobes = (nprobes_w, 1, nprobes_h)
+        skylight = makeProbedCube(size, nprobes, f"skylight_{i}-{k}", True)
+        skylight.translate(disp)
+        skylights_list.append(skylight)
+
+    return sumProbedGeom(skylights_list)
