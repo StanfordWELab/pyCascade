@@ -139,17 +139,14 @@ def identify_openings(rooms_params):
     return rooms_params
 
 
-def makeRoof(x, y, z, h, type='prism'):
+def makeRoof(l1, l2, w1, w2, h1, h2):
     """
     prismoid roof with pointing towards y
     """
     
-    if type == 'prism':
-        geom = prismoid([x,z], [x,0], h=h)
-    elif type == 'pyramid':
-        geom = prismoid([x,z], [0,0], h=h)
+    geom = prismoid([l1,w1], [l2,w2], h=h1)
     geom = xrot(-90)(geom)
-    geom = translate([x/2,y,z/2])(geom)
+    geom = translate([l1/2,h2,w1/2])(geom)
 
     return ProbedGeom(geom)
 
