@@ -1,4 +1,5 @@
 from solid2 import *
+from solid2.extensions.bosl2 import prismoid, xrot, translate
 import numpy as np
 from pyCascade import probeSetup
 # from numpy.polynomial import chebyshev as cheb
@@ -138,19 +139,17 @@ def identify_openings(rooms_params):
     return rooms_params
 
 
-def makeRoof(x_range,y_range,z_range):
+def makeRoof(x, y, z, h, type='prism'):
     """
-    pyramid roof with pointing towards y
+    prismoid roof with pointing towards y
     """
-    x1, x2 = x_range[:]
-    y1, y2 = y_range[:]
-    z1, z2 = z_range[:]
-    geom =  polyhedron(
-        points=([x1,y1,z1],[x2,y1,z1],[x2,y1,z2],[x1,y1,z2],  # the four points at base
-                [(x2-x1)/2,y2,(z1+z2)/2]),                                        # the apex point 
-        faces=([0,1,4],[1,2,4],[2,3,4],[3,0,4],                               # each triangle side
-                    [1,0,3],[2,1,3])                                          # two triangles for square base
-        )
+    
+    if type == 'prism':
+        geom = prismoid([x,z], [x,0], h=h)
+    elif type == 'pyramid':
+        geom = prismoid([x,z], [0,0], h=h)
+    geom = xrot(-90)(geom)
+    geom = translate([x/2,y,z/2])(geom)
 
     return ProbedGeom(geom)
 
