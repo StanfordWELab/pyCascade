@@ -48,6 +48,10 @@ class ProbedGeom:
         self.geom = scale(v)(self.geom)
         for probe_instance in self.probes: probe_instance["tile"]*=v
 
+    def append_names(self, text):
+        for probe in self.probes:
+            probe["name"] = f'{probe["name"]}_{text}'
+
     def write_probes(self, directory):
         for probe in self.probes:
             tile = probe["tile"]
