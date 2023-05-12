@@ -67,18 +67,25 @@ def sumProbedGeom(items: "list"):
             summed += item
     return summed
 
-def makeProbedCube(size, nprobes, name, centered = False):
+def makeProbedCube(size, nprobes, name, centered = False, spacing = "liner"):
     geom = cube(size, centered)
     probe_span = []
     for i,n in enumerate(nprobes):
-        cheby_points = np.arange(1,n+1)
-        cheby_points = np.cos((2*cheby_points-1)*np.pi/(2*n))  #Chebyshev Nodes
-        # cheby_points, _ = cheb.chebgauss(n)
-        # print(cheby_points)
-        cheby_points *= size[i]/2
+        points = None
+        if spacing == "chebychev":
+            cheby_points = np.arange(1,n+1)
+            cheby_points = np.cos((2*cheby_points-1)*np.pi/(2*n))  #Chebyshev Nodes
+            # cheby_points, _ = cheb.chebgauss(n)
+            # print(cheby_points)
+            cheby_points *= size[i]/2
+            points = cheby_points
+        elif spacing == "liner":
+            points = np.linspace(0,size[i],n) #linear spacing
+        else:
+            raise Exception(f"spacing {spacing} not recognized")
         if centered == False:
-            cheby_points += size[i]/2
-        probe_span.append(cheby_points)
+            points += size[i]/2
+        probe_span.append(points)
     tile = probeSetup.probe_fill(*probe_span)
     probes = [{
         "tile": tile,
