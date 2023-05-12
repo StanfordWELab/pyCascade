@@ -1,4 +1,5 @@
-from solid import *
+from solid2 import *
+from solid2.extensions.bosl2 import prismoid, xrot, translate
 import numpy as np
 from pyCascade import probeSetup
 # from numpy.polynomial import chebyshev as cheb
@@ -47,6 +48,10 @@ class ProbedGeom:
         self.geom = scale(v)(self.geom)
         for probe_instance in self.probes: probe_instance["tile"]*=v
 
+    def append_names(self, text):
+        for probe in self.probes:
+            probe["name"] = f'{probe["name"]}_{text}'
+
     def write_probes(self, directory):
         for probe in self.probes:
             tile = probe["tile"]
@@ -62,18 +67,25 @@ def sumProbedGeom(items: "list"):
             summed += item
     return summed
 
-def makeProbedCube(size, nprobes, name, centered = False):
+def makeProbedCube(size, nprobes, name, centered = False, spacing = "liner"):
     geom = cube(size, centered)
     probe_span = []
     for i,n in enumerate(nprobes):
-        cheby_points = np.arange(1,n+1)
-        cheby_points = np.cos((2*cheby_points-1)*np.pi/(2*n))  #Chebyshev Nodes
-        # cheby_points, _ = cheb.chebgauss(n)
-        # print(cheby_points)
-        cheby_points *= size[i]/2
+        points = None
+        if spacing == "chebychev":
+            cheby_points = np.arange(1,n+1)
+            cheby_points = np.cos((2*cheby_points-1)*np.pi/(2*n))  #Chebyshev Nodes
+            # cheby_points, _ = cheb.chebgauss(n)
+            # print(cheby_points)
+            cheby_points *= size[i]/2
+            points = cheby_points
+        elif spacing == "liner":
+            points = np.linspace(0,size[i],n) #linear spacing
+        else:
+            raise Exception(f"spacing {spacing} not recognized")
         if centered == False:
-            cheby_points += size[i]/2
-        probe_span.append(cheby_points)
+            points += size[i]/2
+        probe_span.append(points)
     tile = probeSetup.probe_fill(*probe_span)
     probes = [{
         "tile": tile,
@@ -95,7 +107,7 @@ def makeRooms(x, y, z, wthick = .01, nx=1, ny=1, nz=1):
             for k in range(nz):
                 disp = (x*i + offset, y*j + offset, z*k + offset)
                 rooms_list.append(translate(disp)(cube(size, False)))
-    rooms = sum(rooms_list)
+    rooms = np.sum(rooms_list)
 
     rooms_params = {
         'x': x,
@@ -116,6 +128,7 @@ def identify_openings(rooms_params):
 
     window_locations = []
     door_locations = []
+    skylight_locations = []
 
     for i in range(nx):
         for k in range(nz):
@@ -127,27 +140,24 @@ def identify_openings(rooms_params):
                 window_locations.append([i,k,'z'])
             if k > 0:
                 door_locations.append([i,k,'z'])
+            skylight_locations.append([i,k])
 
     rooms_params['window_locations'] = window_locations
     rooms_params['door_locations'] = door_locations
     rooms_params['wall_locations'] = door_locations
+    rooms_params['skylight_locations'] = skylight_locations
 
     return rooms_params
 
 
-def makeRoof(x_range,y_range,z_range):
+def makeRoof(l1, l2, w1, w2, h1, h2):
     """
-    pyramid roof with pointing towards y
+    prismoid roof with pointing towards y
     """
-    x1, x2 = x_range[:]
-    y1, y2 = y_range[:]
-    z1, z2 = z_range[:]
-    geom =  polyhedron(
-        points=([x1,y1,z1],[x2,y1,z1],[x2,y1,z2],[x1,y1,z2],  # the four points at base
-                [(x2-x1)/2,y2,(z1+z2)/2]),                                        # the apex point 
-        faces=([0,1,4],[1,2,4],[2,3,4],[3,0,4],                               # each triangle side
-                    [1,0,3],[2,1,3])                                          # two triangles for square base
-        )
+    
+    geom = prismoid([l1,w1], [l2,w2], h=h1)
+    geom = xrot(-90)(geom)
+    geom = translate([l1/2,h2,w1/2])(geom)
 
     return ProbedGeom(geom)
 
@@ -228,3 +238,22 @@ def openWalls(rooms_params, w, h, nprobes_w, nprobes_h):
         walls_list.append(door)
 
     return sumProbedGeom(walls_list)
+
+def makeSkylights(rooms_params, w, h, nprobes_w, nprobes_h):
+    x = rooms_params['x']
+    y = rooms_params['y']
+    z = rooms_params['z']
+    wthick = z*.5
+    skylight_locations =  rooms_params['skylight_locations']
+
+    skylights_list = []
+    for skylight_location in skylight_locations:
+        i, k = skylight_location
+        disp = (x*(i+.5), y, z*(k+.5))
+        size = (w, wthick*2, h)
+        nprobes = (nprobes_w, 1, nprobes_h)
+        skylight = makeProbedCube(size, nprobes, f"skylight_{i}-{k}", True)
+        skylight.translate(disp)
+        skylights_list.append(skylight)
+
+    return sumProbedGeom(skylights_list)
