@@ -52,6 +52,7 @@ def mean_convergence(data_dict, t_data = None):
 
     return utils.dict_apply(df_func)(data_dict)
 
+
 def time_average(data_dict, t_data = None):
     df_func = lambda df: df.mean(axis='index')
     return utils.dict_apply(df_func)(data_dict)
@@ -210,6 +211,7 @@ class Probes(utils.Helper):
         def index_unique_steps(df):
             if isinstance(df, (pd.core.frame.DataFrame, pd.core.series.Series)):
                 df = df.iloc[self.unique_steps_indexes].loc[steps]
+                # df = df.loc[steps]
             return df
     
         processed_data = utils.dict_apply(index_unique_steps)(processed_data)
@@ -290,7 +292,8 @@ class Probes(utils.Helper):
                 xPlot = plot_df.columns
                 if 'horizontal spacing' in plot_params:
                     if hasattr(plot_params['horizontal spacing'], "__len__"):
-                        xPlot = plot_params['horizontal spacing'][xPlot]
+                        x_ind = [int(x) for x in xPlot]
+                        xPlot = plot_params['horizontal spacing'][x_ind]
                     else:
                         xPlot *= plot_params['horizontal spacing']
                 yPlot = plot_df.index
