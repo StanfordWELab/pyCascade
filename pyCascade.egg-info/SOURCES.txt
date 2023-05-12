@@ -7,6 +7,7 @@ pyCascade/physics.py
 pyCascade/png2video.py
 pyCascade/probePost.py
 pyCascade/probeSetup.py
+pyCascade/quantities.py
 pyCascade/utils.py
 pyCascade.egg-info/PKG-INFO
 pyCascade.egg-info/SOURCES.txt
