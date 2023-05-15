@@ -80,7 +80,7 @@ def makeProbedCube(size, nprobes, name, centered = False, spacing = "liner"):
             cheby_points *= size[i]/2
             points = cheby_points
         elif spacing == "liner":
-            points = np.linspace(0,size[i],n) #linear spacing
+            points = np.linspace(-size[i]/2,size[i]/2,n) #linear spacing
         else:
             raise Exception(f"spacing {spacing} not recognized")
         if centered == False:
