@@ -77,11 +77,6 @@ def ClenshawCurtis_Quadrature(data_dict, t_data = None):
     ws = np.linalg.solve(A,b)
     CC_weights = np.squeeze(ws[:,None])
 
-    # ## correcting for inforrect probes locations untill R10
-    # Warning('Quadrature weights shifted to match R<=10. Delete this in the future')
-    # CC_weights = np.roll(CC_weights, 1)
-    # #############
-
     Quad_weights = np.tile(CC_weights, 10) * np.repeat(CC_weights, 10) * (interval/2)**2
 
     def df_func(data_df):
@@ -89,6 +84,36 @@ def ClenshawCurtis_Quadrature(data_dict, t_data = None):
         integrated_data = wighted_data.sum(axis=1)
         return integrated_data
 
+    return utils.dict_apply(df_func)(data_dict)
+
+def linear_quadrature(data_dict, t_data=None):
+    # for k, v in data_dict.items():
+    #     name = k[0]
+    #     probe_locations = locations_dict[name]
+    #     # Sort the probe locations in the correct order
+    #     probe_locations = sorted(probe_locations, key=lambda x: (x[1], x[0]))
+
+    #     # Calculate the intervals between the probe locations
+    #     intervals = [np.sqrt((probe_locations[i+1][0]-probe_locations[i][0])**2 + (probe_locations[i+1][1]-probe_locations[i][1])**2) for i in range(len(probe_locations)-1)]
+
+    #     # Calculate the massflow at each interval
+    #     massflows = []
+    #     for i in range(len(intervals)):
+    #         start_probe = probe_locations[i]
+    #         end_probe = probe_locations[i+1]
+    #         start_data = data_dict[("PROBES", start_probe)]
+    #         end_data = data_dict[("PROBES", end_probe)]
+    #         massflow = (end_data - start_data) / intervals[i]
+    #         massflows.append(massflow)
+
+    #     # Calculate the integrated massflow
+    #     integrated_massflow = sum(massflows)
+
+    # Define a function to apply to each data frame
+    def df_func(data_df):
+        return data_df.mean(axis='columns')
+
+    # Apply the function to the data dictionary
     return utils.dict_apply(df_func)(data_dict)
 
 # use to define lambda function with mul preset
