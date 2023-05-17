@@ -25,7 +25,7 @@ def read_probes(filename):
     return ddf, step_index, time_index
 
 def read_locations(filename):
-    return pd.read_csv(filename, delim_whitespace=True, skiprows=1, names=['x', 'y', 'z'])
+    return pd.read_csv(filename, delim_whitespace=True, comment = "#", header=0, names=['probe', 'x', 'y', 'z'])[['x','y','z']]
 
 
 def ddf_to_MIseries(ddf):
@@ -39,6 +39,13 @@ def ddf_to_pdf(df):
     if isinstance(df, (dd.core.DataFrame, dd.core.Series, dd.core.Scalar)):
         df = df.compute()
     return df
+
+def last_unique(a):
+    n_ind = len(a)
+    a, ind_unique = np.unique(np.flip(a), return_index = True)
+    ind_unique = n_ind-1-ind_unique
+    
+    return a, ind_unique
 
 def mean_convergence(data_dict, t_data = None):
     def df_func(data_df):
@@ -140,6 +147,7 @@ class Probes(utils.Helper):
             probe_tbd1s.append(probe_tbd1)
         
         probe_tbd2s = probe_tbd2s.compute().values
+        # probe_tbd2s, unique_steps_indexes = last_unique(probe_tbd2s)
         n_indexes = len(probe_tbd2s)
         probe_tbd2s, unique_steps_indexes = np.unique(np.flip(probe_tbd2s), return_index = True)
         unique_steps_indexes = n_indexes-1-unique_steps_indexes
@@ -182,11 +190,11 @@ class Probes(utils.Helper):
     def get_locations(self, dir_locations):
         locations = {}
         for probe_name in self.probe_names:
-            location_path = f"{dir_locations}/{probe_name}.txt"
+            location_path = f"{dir_locations}/{probe_name}.README"
             # preparing for lazy location reading
-            locations[probe_name] = (read_locations, location_path)
-        # creating lazy dict for locations
-        self.locations = utils.MyLazyDict(locations)
+            locations[probe_name] = read_locations(location_path)
+            
+        self.locations = locations
 
     def process_data(
         self, 
