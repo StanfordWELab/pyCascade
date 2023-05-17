@@ -25,7 +25,10 @@ def read_probes(filename):
     return ddf, step_index, time_index
 
 def read_locations(filename):
-    return pd.read_csv(filename, delim_whitespace=True, comment = "#", header=0, names=['probe', 'x', 'y', 'z'])[['x','y','z']]
+    locations = pd.read_csv(filename, delim_whitespace=True, comment = "#", header=0, names=['probe', 'x', 'y', 'z'], index_col = 'probe')
+    probes = locations.index.values
+    _, probe_ind = last_unique(probes)
+    return locations.iloc[probe_ind]
 
 
 def ddf_to_MIseries(ddf):
@@ -147,10 +150,7 @@ class Probes(utils.Helper):
             probe_tbd1s.append(probe_tbd1)
         
         probe_tbd2s = probe_tbd2s.compute().values
-        # probe_tbd2s, unique_steps_indexes = last_unique(probe_tbd2s)
-        n_indexes = len(probe_tbd2s)
-        probe_tbd2s, unique_steps_indexes = np.unique(np.flip(probe_tbd2s), return_index = True)
-        unique_steps_indexes = n_indexes-1-unique_steps_indexes
+        probe_tbd2s, unique_steps_indexes = last_unique(probe_tbd2s)
         probe_times = probe_time.compute().values[unique_steps_indexes]
 
         self.data = my_dict
