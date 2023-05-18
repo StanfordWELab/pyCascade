@@ -42,18 +42,18 @@ def end_timer(st, description):
     elapsed_time = round(et - st)
     print(f"{description} took {elapsed_time} seconds")
 
-class MyLazyDict(dict):
-    '''
-    Create a lazy dictionary by modifying the __getitem__ attribute. New dictionary dynamically reads in data as it is accessed,
-    and memorizes data once it has been read in.
-    '''
+# class MyLazyDict(dict):
+#     '''
+#     Create a lazy dictionary by modifying the __getitem__ attribute. New dictionary dynamically reads in data as it is accessed,
+#     and memorizes data once it has been read in.
+#     '''
 
-    def __getitem__(self, item):
-        # retrieve the current dictionary value
-        value = dict.__getitem__(self, item)
-        if isinstance(value, tuple):  # check if data has been read in
-            # print('reading in data')
-            value = eval_tuple(value)
-            # reset the dictionary value to the data
-            dict.__setitem__(self, item, value)
-        return value
+#     def __getitem__(self, item):
+#         # retrieve the current dictionary value
+#         value = dict.__getitem__(self, item)
+#         if isinstance(value, tuple):  # check if data has been read in
+#             # print('reading in data')
+#             value = eval_tuple(value)
+#             # reset the dictionary value to the data
+#             dict.__setitem__(self, item, value)
+#         return value
