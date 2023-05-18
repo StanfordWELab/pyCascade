@@ -8,6 +8,7 @@ import pandas as pd
 from dask import dataframe as dd
 from pandarallel import pandarallel
 import scipy as sp
+from IPython.core.debugger import set_trace
 
 def read_pointcloud_probes(filename):
     return dd.read_csv(filename, delim_whitespace=True)  # read as dataframe
@@ -78,7 +79,7 @@ def time_rms(data_dict, t_data = None):
     return utils.dict_apply(df_func)(data_dict)
 
 
-def ClenshawCurtis_Quadrature(data_dict, t_data = None):
+def ClenshawCurtis_Quadrature(data_dict, t_data=None):
     N = 10
     interval = 2.5
     xs = [np.cos((2*(N-k)-1)*np.pi/(2*N)) for k in range(N)]
@@ -127,12 +128,18 @@ def linear_quadrature(data_dict, t_data=None):
     return utils.dict_apply(df_func)(data_dict)
 
 # use to define lambda function with mul preset
-def mul_names(data_dict, names, mul):
+def mul_names(data_dict, names, mul, t_data=None):
     for k, v in data_dict.items():
         name, _ = k
         if name in names:
             data_dict[k] = mul*v
     return data_dict
+
+def quick_dict_apply(df_func):
+    return lambda data_dict, t_data=None: utils.dict_apply(df_func)(data_dict)
+
+def quick_apply(func):
+    return lambda data_dict, t_data=None: func(data_dict)
 
 class Probes(utils.Helper):
     def __init__(self, directory, probe_type = "PROBES"):
@@ -168,12 +175,16 @@ class Probes(utils.Helper):
                 probe_info = file_name.split('.')
                 probe_name, probe_tbd1 = probe_info[:]
                 # store the pcd path and pcd reader function
-                my_dict[(probe_name, probe_tbd1)], probe_tbd2s, probe_time = read_probes(path)
+                my_dict[(probe_name, probe_tbd1)], tbd2s, time = read_probes(path)
+                if 'col' in probe_name: # assuming the cols are run in all runs
+                    probe_tbd2s = tbd2s
+                    probe_time = time
 
 
             probe_names.append(probe_name)
             probe_tbd1s.append(probe_tbd1)
         
+        self.steps_written = len(probe_tbd2s)
         probe_tbd2s = probe_tbd2s.compute().values
         probe_tbd2s, unique_steps_indexes = last_unique(probe_tbd2s)
         probe_times = probe_time.compute().values[unique_steps_indexes]
@@ -243,14 +254,20 @@ class Probes(utils.Helper):
 
         def index_unique_steps(df):
             if isinstance(df, (pd.core.frame.DataFrame, pd.core.series.Series)):
-                df = df.iloc[self.unique_steps_indexes].loc[steps]
-                # df = df.loc[steps]
+                shift = self.steps_written - len(df.index)
+                unique_indexes = np.array(self.unique_steps_indexes - shift)
+                unique_indexes = unique_indexes[unique_indexes >= 0]
+                unique_indexes = unique_indexes.tolist()
+                
+                df = df.iloc[unique_indexes]
+                df = df.loc[steps]
             return df
     
         processed_data = utils.dict_apply(index_unique_steps)(processed_data)
 
         if processing is not None:
-            for process_step in processing:
+            for i, process_step in enumerate(processing):
+                # set_trace()
                 processed_data = process_step(processed_data, t_data)
         
         utils.end_timer(st, 'processing data')

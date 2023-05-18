@@ -1,5 +1,6 @@
 import time
 import numpy as np
+from IPython.core.debugger import set_trace
 
 class Helper:
     def get_input(self, input):
@@ -41,6 +42,7 @@ def end_timer(st, description):
     et = time.time()
     elapsed_time = round(et - st)
     print(f"{description} took {elapsed_time} seconds")
+    
 
 # class MyLazyDict(dict):
 #     '''
@@ -57,3 +59,4 @@ def end_timer(st, description):
 #             # reset the dictionary value to the data
 #             dict.__setitem__(self, item, value)
 #         return value
+
