@@ -247,6 +247,7 @@ class Probes(utils.Helper):
         processed_data  = {}
         for name in names:
             for quant in quants:
+                # self.data[(name, quant)] = ddf_to_pdf(self.data[(name, quant)]) #adding to avoid re-computing every time
                 ddf = self.data[(name, quant)]
                 processed_data[(name, quant)] = ddf[stack]#.loc[steps[0]:steps[-1]]
 
@@ -471,7 +472,11 @@ class Probes(utils.Helper):
                 
                 xPlot = plot_df.index
                 if 'horizontal spacing' in plot_params:
-                    xPlot *= plot_params['horizontal spacing']
+                    if hasattr(plot_params['horizontal spacing'], "__len__"):
+                        x_ind = [int(x) for x in xPlot]
+                        xPlot = plot_params['horizontal spacing'][x_ind]
+                    else:
+                        xPlot *= plot_params['horizontal spacing']
 
                 if 'plot_every' in plot_params:  # usefull to plot subset of timesteps but run calcs across all timesteps
                     name_df = plot_df.iloc[:,::plot_params['plot_every']]

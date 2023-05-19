@@ -28,7 +28,7 @@ class LES_Physics(utils.Helper):
         uStar, z0, disp, z_values = [self.get_input(input) for input in [uStar, z0, disp, z_values]]
 
         log_wind = loglaw_with_disp(z_values, uStar, z0, disp)
-        plt.plot(log_wind, z_values)
+        plt.plot(log_wind, z_values, label = 'Log Profile')
         plt.xlabel('velocity')
         plt.ylabel('height [m]')
 
@@ -91,7 +91,7 @@ class LES_Physics(utils.Helper):
     def plot_spinup_velocity(
         self, 
         log_wind = "self.LES_params['log_wind']", 
-        z_values = "self.LES_params['z_values']"
+        z_values = "self.LES_params['z_values']",
         ):
 
         log_wind, z_values = [self.get_input(input) for input in [log_wind, z_values]]
@@ -102,8 +102,9 @@ class LES_Physics(utils.Helper):
         print(f'domain height is {domain_height}')
 
         spinup_profile = u_bulk*2*(1-z_values/domain_height)
+        
 
-        plt.plot(spinup_profile, z_values)
+        plt.plot(spinup_profile, z_values, label='Linear')
         plt.xlabel('velocity')
         plt.ylabel('height [m]')
 
@@ -130,7 +131,7 @@ class LES_Physics(utils.Helper):
 
         spinup_profile2 = 2*(loglaw_with_disp(z_values, uStar, z0, disp) - u_bulk*(z_values/H))
 
-        plt.plot(spinup_profile2, z_values)
+        plt.plot(spinup_profile2, z_values, label = '2xLog - Linear')
         plt.xlabel('velocity')
         plt.ylabel('height [m]')
 
