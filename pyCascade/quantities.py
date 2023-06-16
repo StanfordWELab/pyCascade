@@ -139,9 +139,11 @@ class Qty(utils.Helper):
             self.Ly = np.array(Ly)
             self.Lz = np.array(Lz)
 
-            self.f, self.Euu = sp.signal.welch(self.uPrime, fs = self.fsamp, axis = 0, nperseg = N//4, scaling = 'density', detrend = 'constant')
+            self.f, self.Euu = sp.signal.welch(self.uPrime, fs = self.fsamp, axis = 0, nperseg = N//4, scaling = 'density', detrend = 'constant') 
+            _, self.Evv = sp.signal.welch(self.vPrime, fs = self.fsamp, axis = 0, nperseg = N//4, scaling = 'density', detrend = 'constant')
+            _, self.Eww = sp.signal.welch(self.wPrime, fs = self.fsamp, axis = 0, nperseg = N//4, scaling = 'density', detrend = 'constant')
 
-            _, self.Epp = sp.signal.welch(self.uPrime, fs = self.fsamp, axis = 0, nperseg = N//4, scaling = 'density', detrend = 'constant')
+            _, self.Epp = sp.signal.welch(self.pPrime, fs = self.fsamp, axis = 0, nperseg = N//4, scaling = 'density', detrend = 'constant')
 
     def set_y(self, y):
         self.y = y
@@ -254,16 +256,20 @@ def plot_prms(qty_dict: dict):
     ax.legend()
     return fig, ax
 
-def plot_power_spectra(qty_dict: dict, interial_offset = 10**(-1)):
+def plot_power_spectra(qty_dict: dict, var = 'Euu', initial_offset = 10**(-1), scaling:str = "-5/3"):
     fig, ax = plt.subplots()
     for i, (name, qty) in enumerate(qty_dict.items()):
         y = qty.y
+        plot_qty = getattr(qty, var)
         for j, yval in enumerate(y):
-            ax.loglog(qty.f, qty.Euu[:,j], '-', label = f'y = {name}, y={yval:.0f} [m]')
-    ax.loglog(qty.f, interial_offset*qty.f**(-5/3), label = '-5/3')
+            ax.loglog(qty.f, plot_qty[:,j], '-', label = f'y = {name}, y={yval:.0f} [m]')
+    ax.loglog(qty.f, initial_offset*qty.f**(eval(scaling)), label = scaling)
     ax.legend()
     ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     ax.set_xlabel("frequency $[1/s]$")
-    ax.set_ylabel("$E_u [m^3/s^2]$")
+    ylabel = f"${var}"
+    ylabel = ylabel + "} [m^3/s^2]$"
+    ylabel = ylabel.replace("E", "E_{")
+    ax.set_ylabel(ylabel)
     plt.tight_layout()
     return fig, ax
