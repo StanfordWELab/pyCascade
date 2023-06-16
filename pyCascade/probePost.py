@@ -36,7 +36,7 @@ def read_probes(filename, file_type = 'csv'):
     return ddf, step_index, time_index
 
 def read_locations(filename):
-    locations = pd.read_csv(filename, delim_whitespace=True, comment = "#", header=0, names=['probe', 'x', 'y', 'z'], index_col = 'probe')
+    locations = pd.read_csv(filename, delim_whitespace=True, comment = "#", names=['probe', 'x', 'y', 'z'], index_col = 'probe')
     probes = locations.index.values
     _, probe_ind = last_unique(probes)
     return locations.iloc[probe_ind]
