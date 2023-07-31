@@ -169,6 +169,7 @@ def plot_ABL(qty_dict: dict, fit_disp = False):
             
         y_plot = np.linspace(0, y[-1], 100)
         ax.plot(physics.loglaw_with_disp(y_plot, uStar, z0, disp), y_plot, f'{colors[i]}-')
+        print(f"{name}: u* = {uStar}, z0 = {z0}, disp = {disp}")
 
     ax.set_xlabel('mean velocity [m/s]')
     ax.set_ylabel('height [m]')
