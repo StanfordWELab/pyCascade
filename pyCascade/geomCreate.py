@@ -2,6 +2,7 @@ from solid2 import *
 from solid2.extensions.bosl2 import prismoid, xrot, translate
 import numpy as np
 from pyCascade import probeSetup
+from scipy.spatial.transform import Rotation as R
 # from numpy.polynomial import chebyshev as cheb
 # from chaospy.quadrature import clenshaw_curtis
 
@@ -40,6 +41,15 @@ class ProbedGeom:
         """
         self.geom = translate(v)(self.geom)
         for probe_instance in self.probes: probe_instance["tile"]+=v 
+
+    def rotate(self, v):
+        """
+        rotates geometry and probes
+        """
+        self.geom = rotate(v)(self.geom)
+        r = R.from_rotvec([a / 180 * np.pi for a in v])
+        for probe_instance in self.probes:
+            probe_instance["tile"] = r.apply(probe_instance["tile"]) 
 
     def scale(self, v):
         """
