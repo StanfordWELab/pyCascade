@@ -84,7 +84,7 @@ def sumProbedGeom(items: "list"):
             summed += item
     return summed
 
-def makeProbedCube(size, nprobes, name, centered = False, spacing = "linear"):
+def makeProbedCube(size, nprobes, name, centered = False, spacing = "volumetric"):
     geom = cube(size, centered)
     probe_span = []
     for i,n in enumerate(nprobes):
@@ -220,14 +220,16 @@ def makeWindows(rooms_params, w, h, nprobes_w, nprobes_h):
     for window_location in window_locations:
         i, k, orientation = window_location
         if orientation == 'x':
-            disp = (x*(i+(i!=0)), y/2, z*(k+.5))
-            size = (wthick*2, h, w)
+            edge_shift = wthick - (i!=0)*wthick*2
+            disp = (x*(i+(i!=0)) + edge_shift, y/2, z*(k+.5))
+            size = (wthick, h, w)
             nprobes = (1, nprobes_h, nprobes_w)
             window = makeProbedCube(size, nprobes, f"xwindow_{i}-{k}", True)
             window.translate(disp)
         elif orientation == 'z':
-            disp = (x*(i+.5), y/2, z*(k+(k!=0)))
-            size = (w, h, wthick*2)
+            edge_shift = wthick - (k!=0)*wthick*2
+            disp = (x*(i+.5), y/2, z*(k+(k!=0)) + edge_shift)
+            size = (w, h, wthick)
             nprobes = (nprobes_w, nprobes_h, 1)
             window = makeProbedCube(size, nprobes, f"zwindow_{i}-{k}", True)
             window.translate(disp)
