@@ -68,12 +68,13 @@ class ProbedGeom:
         """
         self.probes = [probe for probe in self.probes if probe["tile"].shape[0] != 0]
 
-    def write_probes(self, directory):
+    def writeProbesToFile(self, directory, nameInclude = "", nameExclude = "100gecs"):
         self.removeZeroProbes()
         for probe in self.probes:
-            tile = probe["tile"]
-            fileName = f"{directory}{probe['name']}.txt"
-            probeSetup.writeProbes(tile, fileName)
+            if nameInclude in probe["name"] and nameExclude not in probe["name"]:
+                tile = probe["tile"]
+                fileName = f"{directory}{probe['name']}.txt"
+                probeSetup.writeProbes(tile, fileName)
 
 
 def sumProbedGeom(items: "list"):
@@ -264,7 +265,7 @@ def openWalls(rooms_params, w, h, nprobes_w, nprobes_h):
 
     return sumProbedGeom(walls_list)
 
-def makeSkylights(rooms_params, w, h, nprobes_w, nprobes_h):
+def makeSkylights(rooms_params, w, h, t, nprobes_w, nprobes_h):
     x = rooms_params['x']
     y = rooms_params['y']
     z = rooms_params['z']
@@ -279,7 +280,7 @@ def makeSkylights(rooms_params, w, h, nprobes_w, nprobes_h):
         size = (w, wthick, h)
         nprobes = (nprobes_w, 1, nprobes_h)
         skylight = makeProbedCube(size, nprobes, f"skylight_{i}-{k}", True)
-        skylight += ProbedGeom(cube((w, y*1.5, h), True))
+        skylight += ProbedGeom(cube((w, t, h), True))
         skylight.translate(disp)
         skylights_list.append(skylight)
 
