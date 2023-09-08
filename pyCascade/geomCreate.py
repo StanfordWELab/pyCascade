@@ -89,6 +89,8 @@ def makeProbedCube(size, nprobes, name, centered = False, spacing = "volumetric"
     probe_span = []
     for i,n in enumerate(nprobes):
         points = None
+        dim = size[i]
+        dim /= ((n == 1) * 1.1) #correct for oversized openings
         if n == 0:
             points = np.array([])
         elif spacing == "chebychev":
@@ -96,17 +98,17 @@ def makeProbedCube(size, nprobes, name, centered = False, spacing = "volumetric"
             cheby_points = np.cos((2*cheby_points-1)*np.pi/(2*n))  #Chebyshev Nodes
             # cheby_points, _ = cheb.chebgauss(n)
             # print(cheby_points)
-            cheby_points *= size[i]/2
+            cheby_points *= dim/2
             points = cheby_points
         elif spacing == "linear":
-            lin_offest = (size[i] / 2) * (1 - 1/n)
+            lin_offest = (dim / 2) * (1 - 1/n)
             points = np.linspace(-lin_offest, lin_offest ,n) #linear spacing
         elif spacing == "volumetric":
-            points = np.array([-size[i] / 2, size[i] / 2])
+            points = np.array([-dim / 2, dim / 2])
         else:
             raise Exception(f"spacing {spacing} not recognized")
         if centered == False:
-            points += size[i]/2
+            points += size[i]/2 # dont use dim because related to geom size not probe size
         probe_span.append(points)
     tile = probeSetup.probe_fill(*probe_span)
     probes = [{
