@@ -5,9 +5,12 @@ import statsmodels.api as sm
 import scipy as sp
 from scipy.optimize import curve_fit
 from matplotlib import pyplot as plt
+import matplotlib.colors as mcolors
+from IPython.core.debugger import set_trace
+
 
 @dask.delayed
-def LengthScale(uPrime, meanU, time, show_plot=False):
+def LengthScale(uPrime, meanU, time, show_plot=False, C = "1"):
     """
     Compute the length scale of the flow using the exponential fit method
     """
@@ -20,12 +23,10 @@ def LengthScale(uPrime, meanU, time, show_plot=False):
     Lx = t_scale*meanU # compute the length scale of the flow
 
     if show_plot == True:
-        plt.figure()
-        plt.plot(time, R_u, label = 'Autocorrelation')
-        plt.plot(time, func(time, *R_uFit), label = 'Exponential fit')
-        plt.xlabel('Time')
+        plt.plot(time*meanU, R_u, ':', color = C, lw = .2, label = 'Autocorrelation')
+        plt.plot(time*meanU, func(time, *R_uFit), lw = 1, color = C, label = 'Exponential fit')
+        plt.xlabel('Length [m]')
         plt.ylabel('Autocorrelation')
-        plt.legend()
 
     return Lx
 
@@ -77,13 +78,18 @@ class Qty(utils.Helper):
 
         self.y = None
 
-    def computeQty(self, data_dict, t_data, u_str = 'comp(u,0)', v_str = 'comp(u,1)', w_str = 'comp(u,2)', p_str = 'p', calc_stats = True):
+    def computeQty(self, data_dict, t_data, theta_wind = 0, u_str = 'comp(u,0)', v_str = 'comp(u,1)', w_str = 'comp(u,2)', p_str = 'p', calc_stats = True):
         self.fsamp = 1/(t_data[-1]-t_data[-2])
-
-        self.u = data_dict[u_str]
-        self.v = data_dict[v_str]
-        self.w = data_dict[w_str]
-        self.p = data_dict[p_str]
+        theta_wind *= np.pi / 180
+        #claculating in frame aligned with mean wind
+        self.u = data_dict[u_str] * np.cos(theta_wind) + data_dict[w_str] * np.sin(theta_wind)
+        self.w = data_dict[w_str] * np.cos(theta_wind) + data_dict[u_str] * np.sin(theta_wind)
+        self.v = data_dict[w_str]
+        try:
+            self.p = data_dict[p_str]
+        except:
+            print("pressure data not founnd, replacing with zeros")
+            self.p = self.u * 0
 
         if calc_stats:
             self.meanU = np.mean(self.u, axis = 'index')
@@ -123,13 +129,17 @@ class Qty(utils.Helper):
             self.Iv_avg = np.sqrt(self.vv_avg)/self.meanU
             self.Iw_avg = np.sqrt(self.ww_avg)/self.meanU
 
-            N, idx = self.p.shape
+            N, idx = self.u.shape
 
             Lx = []
             Ly = []
             Lz = []
+            
+            plt.figure()
+            C = 0;
             for i in range(idx):
-                Lx.append(LengthScale(self.uPrime.values[:,i], self.meanU.values[i], t_data))
+                C += 1/(idx+1)
+                Lx.append(LengthScale(self.uPrime.values[:,i], self.meanU.values[i], t_data, True, str(C)))
                 Ly.append(LengthScale(self.vPrime.values[:,i], self.meanU.values[i], t_data))
                 Lz.append(LengthScale(self.wPrime.values[:,i], self.meanU.values[i], t_data))
 
@@ -150,13 +160,13 @@ class Qty(utils.Helper):
 
 def plot_ABL(qty_dict: dict, fit_disp = False):
     fig, ax = plt.subplots()
-    colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w']
+    colors = list(mcolors.TABLEAU_COLORS)
 
     # fit log law to find uStar, z0, disp
     kappa = 0.41
     for i, (name, qty) in enumerate(qty_dict.items()):
         y = qty.y #get the height of the probes
-        ax.plot(qty.meanU, y, f'{colors[i]}o', label=f'{name}')
+        ax.plot(qty.meanU, y, 'o',color = colors[i], label=f'{name}')
 
         c0, c1 = np.polyfit(qty.meanU, np.log(y), 1) #fit a line to the log of the height
         uStar = kappa/c0 #get uStar from the slope
@@ -168,7 +178,7 @@ def plot_ABL(qty_dict: dict, fit_disp = False):
             uStar, z0, disp = popt
             
         y_plot = np.linspace(0, y[-1], 100)
-        ax.plot(physics.loglaw_with_disp(y_plot, uStar, z0, disp), y_plot, f'{colors[i]}-')
+        ax.plot(physics.loglaw_with_disp(y_plot, uStar, z0, disp), y_plot, color = colors[i])
         print(f"{name}: u* = {uStar}, z0 = {z0}, disp = {disp}")
 
     ax.set_xlabel('mean velocity [m/s]')
@@ -198,6 +208,7 @@ def plot_length_scales(qty_dict: dict):
     ax[2].legend()
     # place legend outside of plot
     ax[2].legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    fig.tight_layout()
     return fig, ax
 
 def plot_reynolds_stresses(qty_dict: dict):
@@ -259,11 +270,32 @@ def plot_prms(qty_dict: dict):
 
 def plot_power_spectra(qty_dict: dict, var = 'Euu', initial_offset = 10**(-1), scaling:str = "-5/3"):
     fig, ax = plt.subplots()
+    colors = list(mcolors.TABLEAU_COLORS)
+    linestyles = [
+     ('solid', 'solid'),      # Same as (0, ()) or '-'
+     ('dotted', 'dotted'),    # Same as (0, (1, 1)) or ':'
+     ('dashed', 'dashed'),    # Same as '--'
+     ('dashdot', 'dashdot'),
+     ('loosely dotted',        (0, (1, 10))),
+     ('dotted',                (0, (1, 1))),
+     ('densely dotted',        (0, (1, 1))),
+     ('long dash with offset', (5, (10, 3))),
+     ('loosely dashed',        (0, (5, 10))),
+     ('dashed',                (0, (5, 5))),
+     ('densely dashed',        (0, (5, 1))),
+
+     ('loosely dashdotted',    (0, (3, 10, 1, 10))),
+     ('dashdotted',            (0, (3, 5, 1, 5))),
+     ('densely dashdotted',    (0, (3, 1, 1, 1))),
+
+     ('dashdotdotted',         (0, (3, 5, 1, 5, 1, 5))),
+     ('loosely dashdotdotted', (0, (3, 10, 1, 10, 1, 10))),
+     ('densely dashdotdotted', (0, (3, 1, 1, 1, 1, 1)))]
     for i, (name, qty) in enumerate(qty_dict.items()):
         y = qty.y
         plot_qty = getattr(qty, var)
         for j, yval in enumerate(y):
-            ax.loglog(qty.f, plot_qty[:,j], '-', label = f'y = {name}, y={yval:.0f} [m]')
+            ax.loglog(qty.f, plot_qty[:,j], linestyle  = linestyles[i][1], lw =1 , color = colors[j], label = f'y = {name}, y={yval:.0f} [m]')
     ax.loglog(qty.f, initial_offset*qty.f**(eval(scaling)), label = scaling)
     ax.legend()
     ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))

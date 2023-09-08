@@ -325,6 +325,7 @@ class Probes(utils.Helper):
     
     def create_qty_dict(
             self, 
+            theta_wind = 0,
             names = "self.probe_names", 
             steps = "self.probe_steps", 
             quants = "self.probe_quants", 
@@ -339,6 +340,7 @@ class Probes(utils.Helper):
             processed_data = self.process_data([name], steps, quants, stack, processing)
             qty.computeQty(processed_data,
                            self.probe_times[steps],
+                           theta_wind = theta_wind,
                            u_str = (name, 'comp(u,0)'), 
                            v_str = (name, 'comp(u,1)'), 
                            w_str = (name, 'comp(u,2)'), 

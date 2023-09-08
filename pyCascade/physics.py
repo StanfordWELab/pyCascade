@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 def loglaw_with_disp(z, uStar, z0, disp):
     vK_const = .41
     z_scaled = (z - disp)/z0
-    z_scaled[z_scaled<1] = 1
+    z_scaled[z_scaled < 1] = 1
 
     log_wind = (uStar/vK_const)*np.log(z_scaled)
     return log_wind
