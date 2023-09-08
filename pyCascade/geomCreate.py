@@ -117,10 +117,10 @@ def makeProbedCube(size, nprobes, name, centered = False, spacing = "volumetric"
 
 
 def makeRooms(x, y, z, wthick = .01, nx=1, ny=1, nz=1):
-    offset = wthick/2
-    x_empty = x - wthick
-    y_empty= y - wthick
-    z_empty = z - wthick
+    offset = wthick
+    x_empty = x - 2 * wthick
+    y_empty= y - 2 * wthick
+    z_empty = z - 2 * wthick
     size = (x_empty, y_empty, z_empty)
 
     rooms_list = []
@@ -195,13 +195,13 @@ def makeDoors(rooms_params, w, h, nprobes_w, nprobes_h):
         i, k, orientation = door_location
         if orientation == 'x':
             disp = (x*i, y/2, z*(k+.5))
-            size = (wthick*2, h, w)
+            size = (wthick*2.2, h, w)
             nprobes = (1, nprobes_h, nprobes_w)
             door = makeProbedCube(size, nprobes, f"xdoor_{i}-{k}", True)
             door.translate(disp)
         elif orientation == 'z':
             disp = (x*(i+.5), y/2, z*k)
-            size = (w, h, wthick*2)
+            size = (w, h, wthick*2.2)
             nprobes = (nprobes_w, nprobes_h, 1)
             door = makeProbedCube(size, nprobes, f"zdoor_{i}-{k}", True)
             door.translate(disp)
@@ -220,16 +220,16 @@ def makeWindows(rooms_params, w, h, nprobes_w, nprobes_h):
     for window_location in window_locations:
         i, k, orientation = window_location
         if orientation == 'x':
-            edge_shift = wthick - (i!=0)*wthick*2
+            edge_shift = wthick * (0.5 - (i!=0))
             disp = (x*(i+(i!=0)) + edge_shift, y/2, z*(k+.5))
-            size = (wthick, h, w)
+            size = (wthick*1.1, h, w)
             nprobes = (1, nprobes_h, nprobes_w)
             window = makeProbedCube(size, nprobes, f"xwindow_{i}-{k}", True)
             window.translate(disp)
         elif orientation == 'z':
-            edge_shift = wthick - (k!=0)*wthick*2
+            edge_shift = wthick * (0.5 - (k!=0))
             disp = (x*(i+.5), y/2, z*(k+(k!=0)) + edge_shift)
-            size = (w, h, wthick)
+            size = (w, h, wthick*1.1)
             nprobes = (nprobes_w, nprobes_h, 1)
             window = makeProbedCube(size, nprobes, f"zwindow_{i}-{k}", True)
             window.translate(disp)
@@ -249,13 +249,13 @@ def openWalls(rooms_params, w, h, nprobes_w, nprobes_h):
         i, k, orientation = wall_location
         if orientation == 'x':
             disp = (x*i, y/2, z*(k+.5))
-            size = (wthick*2, h, w)
+            size = (wthick*2.2, h, w)
             nprobes = (1, nprobes_h, nprobes_w)
             door = makeProbedCube(size, nprobes, f"xwall_{i}-{k}", True)
             door.translate(disp)
         elif orientation == 'z':
             disp = (x*(i+.5), y/2, z*k)
-            size = (w, h, wthick*2)
+            size = (w, h, wthick*2.2)
             nprobes = (nprobes_w, nprobes_h, 1)
             door = makeProbedCube(size, nprobes, f"zwall_{i}-{k}", True)
             door.translate(disp)
