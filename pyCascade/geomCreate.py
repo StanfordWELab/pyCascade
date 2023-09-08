@@ -84,20 +84,23 @@ def sumProbedGeom(items: "list"):
             summed += item
     return summed
 
-def makeProbedCube(size, nprobes, name, centered = False, spacing = "volumetric"):
+def makeProbedCube(size, nprobes, name, centered = False, spacing = "linear"):
     geom = cube(size, centered)
     probe_span = []
     for i,n in enumerate(nprobes):
         points = None
-        if spacing == "chebychev":
+        if n == 0:
+            points = np.array([])
+        elif spacing == "chebychev":
             cheby_points = np.arange(1,n+1)
             cheby_points = np.cos((2*cheby_points-1)*np.pi/(2*n))  #Chebyshev Nodes
             # cheby_points, _ = cheb.chebgauss(n)
             # print(cheby_points)
             cheby_points *= size[i]/2
             points = cheby_points
-        elif spacing == "liner":
-            points = np.linspace(-size[i]/2,size[i]/2,n) #linear spacing
+        elif spacing == "linear":
+            lin_offest = (size[i] / 2) * (1 - 1/n)
+            points = np.linspace(-lin_offest, lin_offest ,n) #linear spacing
         elif spacing == "volumetric":
             points = np.array([-size[i] / 2, size[i] / 2])
         else:
