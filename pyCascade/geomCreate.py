@@ -90,7 +90,6 @@ def makeProbedCube(size, nprobes, name, centered = False, spacing = "volumetric"
     for i,n in enumerate(nprobes):
         points = None
         dim = size[i]
-        dim /= ((n == 1) * 1.1) #correct for oversized openings
         if n == 0:
             points = np.array([])
         elif spacing == "chebychev":
@@ -108,7 +107,7 @@ def makeProbedCube(size, nprobes, name, centered = False, spacing = "volumetric"
         else:
             raise Exception(f"spacing {spacing} not recognized")
         if centered == False:
-            points += size[i]/2 # dont use dim because related to geom size not probe size
+            points += dim/2
         probe_span.append(points)
     tile = probeSetup.probe_fill(*probe_span)
     probes = [{
@@ -269,16 +268,18 @@ def makeSkylights(rooms_params, w, h, nprobes_w, nprobes_h):
     x = rooms_params['x']
     y = rooms_params['y']
     z = rooms_params['z']
-    wthick = z*.5
+    wthick = rooms_params['wthick']
     skylight_locations =  rooms_params['skylight_locations']
 
     skylights_list = []
     for skylight_location in skylight_locations:
+        edge_shift = wthick * (-0.5)
         i, k = skylight_location
-        disp = (x*(i+.5), y, z*(k+.5))
-        size = (w, wthick*2, h)
+        disp = (x*(i+.5), y + edge_shift, z*(k+.5))
+        size = (w, wthick, h)
         nprobes = (nprobes_w, 1, nprobes_h)
         skylight = makeProbedCube(size, nprobes, f"skylight_{i}-{k}", True)
+        skylight += ProbedGeom(cube((w, y*1.5, h), True))
         skylight.translate(disp)
         skylights_list.append(skylight)
 
