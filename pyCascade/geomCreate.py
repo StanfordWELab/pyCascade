@@ -84,7 +84,7 @@ def sumProbedGeom(items: "list"):
             summed += item
     return summed
 
-def makeProbedCube(size, nprobes, name, centered = False, spacing = "liner"):
+def makeProbedCube(size, nprobes, name, centered = False, spacing = "volumetric"):
     geom = cube(size, centered)
     probe_span = []
     for i,n in enumerate(nprobes):
@@ -98,6 +98,8 @@ def makeProbedCube(size, nprobes, name, centered = False, spacing = "liner"):
             points = cheby_points
         elif spacing == "liner":
             points = np.linspace(-size[i]/2,size[i]/2,n) #linear spacing
+        elif spacing == "volumetric":
+            points = np.array([-size[i] / 2, size[i] / 2])
         else:
             raise Exception(f"spacing {spacing} not recognized")
         if centered == False:
