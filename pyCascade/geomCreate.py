@@ -61,8 +61,15 @@ class ProbedGeom:
     def append_names(self, text):
         for probe in self.probes:
             probe["name"] = f'{probe["name"]}_{text}'
+            
+    def removeZeroProbes(self):
+        """
+        removes probes with 0 points
+        """
+        self.probes = [probe for probe in self.probes if probe["tile"].shape[0] != 0]
 
     def write_probes(self, directory):
+        self.removeZeroProbes()
         for probe in self.probes:
             tile = probe["tile"]
             fileName = f"{directory}{probe['name']}.txt"
