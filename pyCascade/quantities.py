@@ -166,7 +166,7 @@ def plot_ABL(qty_dict: dict, fit_disp = False):
     kappa = 0.41
     for i, (name, qty) in enumerate(qty_dict.items()):
         y = qty.y #get the height of the probes
-        ax.plot(qty.meanU, y, 'o',color = colors[i], label=f'{name}')
+        ax.plot(qty.meanU, y, 'o',color = colors[i], label=f'{name.replace("_", " ")}')
 
         c0, c1 = np.polyfit(qty.meanU, np.log(y), 1) #fit a line to the log of the height
         uStar = kappa/c0 #get uStar from the slope
@@ -191,9 +191,9 @@ def plot_length_scales(qty_dict: dict):
     fig, ax = plt.subplots(1,3)
     for name, qty in qty_dict.items():
         y = qty.y
-        ax[0].plot(qty.Lx, y, '-', label = name)
-        ax[1].plot(qty.Ly, y, '-', label = name)
-        ax[2].plot(qty.Lz, y, '-', label = name)
+        ax[0].plot(qty.Lx, y, '-', label = name.replace("_", " "))
+        ax[1].plot(qty.Ly, y, '-', label = name.replace("_", " "))
+        ax[2].plot(qty.Lz, y, '-', label = name.replace("_", " "))
 
     ax[0].set_title('Lx')
     ax[1].set_title('Ly')
@@ -215,12 +215,12 @@ def plot_reynolds_stresses(qty_dict: dict):
     fig, ax = plt.subplots(2,3)
     for name, qty in qty_dict.items():
         y = qty.y
-        ax[0,0].plot(qty.uu_avg, y, '-', label = name)
-        ax[0,1].plot(qty.vv_avg, y, '-', label = name)
-        ax[0,2].plot(qty.ww_avg, y, '-', label = name)
-        ax[1,0].plot(qty.uv_avg, y, '-', label = name)
-        ax[1,1].plot(qty.uw_avg, y, '-', label = name)
-        ax[1,2].plot(qty.vw_avg, y, '-', label = name)
+        ax[0,0].plot(qty.uu_avg, y, '-', label = name.replace("_", " "))
+        ax[0,1].plot(qty.vv_avg, y, '-', label = name.replace("_", " "))
+        ax[0,2].plot(qty.ww_avg, y, '-', label = name.replace("_", " "))
+        ax[1,0].plot(qty.uv_avg, y, '-', label = name.replace("_", " "))
+        ax[1,1].plot(qty.uw_avg, y, '-', label = name.replace("_", " "))
+        ax[1,2].plot(qty.vw_avg, y, '-', label = name.replace("_", " "))
 
     ax[0,0].set_ylabel('y [m]')
     ax[1,0].set_ylabel('y [m]')
@@ -246,9 +246,9 @@ def plot_turbulence_intensities(qty_dict: dict):
 
     for name, qty in qty_dict.items():
         y = qty.y
-        ax[0].plot(qty.Iu_avg, y, '-', label = name)
-        ax[1].plot(qty.Iv_avg, y, '-', label = name)
-        ax[2].plot(qty.Iw_avg, y, '-', label = name)
+        ax[0].plot(qty.Iu_avg, y, '-', label = name.replace("_", " "))
+        ax[1].plot(qty.Iv_avg, y, '-', label = name.replace("_", " "))
+        ax[2].plot(qty.Iw_avg, y, '-', label = name.replace("_", " "))
 
     ax[0].set_ylabel('y [m]')
 
@@ -270,7 +270,7 @@ def plot_prms(qty_dict: dict):
 
 def plot_power_spectra(qty_dict: dict, var = 'Euu', initial_offset = 10**(-1), scaling:str = "-5/3"):
     fig, ax = plt.subplots()
-    colors = list(mcolors.TABLEAU_COLORS)
+    colors = list(mcolors.TABLEAU_COLORS)# XKCD_COLORS)
     linestyles = [
      ('solid', 'solid'),      # Same as (0, ()) or '-'
      ('dotted', 'dotted'),    # Same as (0, (1, 1)) or ':'
@@ -295,7 +295,7 @@ def plot_power_spectra(qty_dict: dict, var = 'Euu', initial_offset = 10**(-1), s
         y = qty.y
         plot_qty = getattr(qty, var)
         for j, yval in enumerate(y):
-            ax.loglog(qty.f, plot_qty[:,j], linestyle  = linestyles[i][1], lw =1 , color = colors[j], label = f'y = {name}, y={yval:.0f} [m]')
+            ax.loglog(qty.f, plot_qty[:,j], linestyle  = linestyles[j][1], lw =1 , color = colors[i], label = f'y = {name.replace("_", " ")}, y={yval:.0f} [m]')
     ax.loglog(qty.f, initial_offset*qty.f**(eval(scaling)), label = scaling)
     ax.legend()
     ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
