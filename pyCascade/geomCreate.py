@@ -15,7 +15,7 @@ class ProbedGeom:
         """
         This makes u = a + b also aggegate the associated probes
         """
-        return ProbedGeom(self.geom+x.geom, self.probes + x.probes)
+        return ProbedGeom(self.geom + x.geom, self.probes + x.probes)
 
     # def __radd__(self, x: "ProbedGeom"):
     #     """
@@ -40,7 +40,7 @@ class ProbedGeom:
         translates geometry and probes
         """
         self.geom = translate(v)(self.geom)
-        for probe_instance in self.probes: probe_instance["tile"]+=v 
+        for probe_instance in self.probes: probe_instance.tile += v 
 
     def rotate(self, v):
         """
@@ -49,32 +49,31 @@ class ProbedGeom:
         self.geom = rotate(v)(self.geom)
         r = R.from_rotvec([a / 180 * np.pi for a in v])
         for probe_instance in self.probes:
-            probe_instance["tile"] = r.apply(probe_instance["tile"]) 
+            probe_instance.tile = r.apply(probe_instance.tile) 
 
     def scale(self, v):
         """
         scales geometry and probes
         """
         self.geom = scale(v)(self.geom)
-        for probe_instance in self.probes: probe_instance["tile"]*=v
+        for probe_instance in self.probes: probe_instance.tile *= v
 
     def append_names(self, text):
         for probe in self.probes:
-            probe["name"] = f'{probe["name"]}_{text}'
+            probe.name = f'{probe.name}_{text}'
             
     def removeZeroProbes(self):
         """
         removes probes with 0 points
         """
-        self.probes = [probe for probe in self.probes if probe["tile"].shape[0] != 0]
+        self.probes = [probe for probe in self.probes if probe.tile.shape[0] != 0]
 
     def writeProbesToFile(self, directory, nameInclude = "", nameExclude = "100gecs"):
         self.removeZeroProbes()
         for probe in self.probes:
-            if nameInclude in probe["name"] and nameExclude not in probe["name"]:
-                tile = probe["tile"]
-                fileName = f"{directory}{probe['name']}.txt"
-                probeSetup.writeProbes(tile, fileName)
+            if nameInclude in probe.name and nameExclude not in probe.name:
+                probe.fileName = f"{directory}{probe.name}.txt"
+                probe.writeProbes()
 
 
 def sumProbedGeom(items: "list"):
@@ -85,7 +84,7 @@ def sumProbedGeom(items: "list"):
             summed += item
     return summed
 
-def makeProbedCube(size, nprobes, name, centered = False, spacing = "volumetric"):
+def makeProbedCube(size, nprobes, name, centered = False, spacing = "flux"):
     geom = cube(size, centered)
     probe_span = []
     for i,n in enumerate(nprobes):
@@ -105,17 +104,16 @@ def makeProbedCube(size, nprobes, name, centered = False, spacing = "volumetric"
             points = np.linspace(-lin_offest, lin_offest ,n) #linear spacing
         elif spacing == "volumetric":
             points = np.array([-dim / 2, dim / 2])
+        elif spacing == "flux":
+            points = np.array([0])
         else:
             raise Exception(f"spacing {spacing} not recognized")
         if centered == False:
             points += dim/2
         probe_span.append(points)
-    tile = probeSetup.probe_fill(*probe_span)
-    probes = [{
-        "tile": tile,
-        "name": name
-    }]
-    return ProbedGeom(geom, probes)
+    probes = probeSetup.Probes(name = name)
+    probes.probe_fill(*probe_span)
+    return ProbedGeom(geom, [probes])
 
 
 def makeRooms(x, y, z, wthick = .01, nx=1, ny=1, nz=1):
