@@ -28,6 +28,7 @@ class Probes:
         tile[:,0] = x
         tile[:,2] = z
         tile[:,1] = np.linspace(y_min, y_max, n_probes)
+        self.type = "PROBE"
         self.tile = tile
 
     def probe_fill(self, x_range, y_range, z_range):

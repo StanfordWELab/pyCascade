@@ -84,9 +84,10 @@ def sumProbedGeom(items: "list"):
             summed += item
     return summed
 
-def makeProbedCube(size, nprobes, name, centered = False, spacing = "flux"):
+def makeProbedCube(size, nprobes, name, centered = False, spacing = "volumetric"):
     geom = cube(size, centered)
     probe_span = []
+    probeType = None
     for i,n in enumerate(nprobes):
         points = None
         dim = size[i]
@@ -99,19 +100,23 @@ def makeProbedCube(size, nprobes, name, centered = False, spacing = "flux"):
             # print(cheby_points)
             cheby_points *= dim/2
             points = cheby_points
+            probeType = "PROBE"
         elif spacing == "linear":
             lin_offest = (dim / 2) * (1 - 1/n)
             points = np.linspace(-lin_offest, lin_offest ,n) #linear spacing
+            probeType = "PROBE"
         elif spacing == "volumetric":
             points = np.array([-dim / 2, dim / 2])
+            probeType = "VOLUMETRIC_PROBE"
         elif spacing == "flux":
             points = np.array([0])
+            probeType = "FLUX_PROBE"
         else:
             raise Exception(f"spacing {spacing} not recognized")
         if centered == False:
             points += dim/2
         probe_span.append(points)
-    probes = probeSetup.Probes(name = name)
+    probes = probeSetup.Probes(name = name, type = probeType)
     probes.probe_fill(*probe_span)
     return ProbedGeom(geom, [probes])
 
