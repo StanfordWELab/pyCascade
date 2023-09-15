@@ -84,7 +84,7 @@ def sumProbedGeom(items: "list"):
             summed += item
     return summed
 
-def makeProbedCube(size, nprobes, name, centered = False, spacing = "volumetric"):
+def makeProbedCube(size, nprobes, name, centered = False, spacing = "flux"):
     geom = cube(size, centered)
     probe_span = []
     probeType = None
@@ -109,7 +109,11 @@ def makeProbedCube(size, nprobes, name, centered = False, spacing = "volumetric"
             points = np.array([-dim / 2, dim / 2])
             probeType = "VOLUMETRIC_PROBE"
         elif spacing == "flux":
-            points = np.array([0])
+            if dim == np.min(size):
+                ref_normal = 1 # normal is in the direction of the smallest dimension
+            else:
+                ref_normal = 0
+            points = np.array([0, ref_normal])
             probeType = "FLUX_PROBE"
         else:
             raise Exception(f"spacing {spacing} not recognized")
