@@ -9,6 +9,7 @@ class Probes:
         self.name = name
         self.fileName = fileName
         self.type = type
+        self.probeCall = None
 
     def writeProbes(self):
     
@@ -42,3 +43,30 @@ class Probes:
         tile[:,1] = np.tile(np.repeat(y_range, n_x), n_z)
         tile[:,2] = np.repeat(z_range, n_x*n_y)
         self.tile = tile
+
+    def getProbeCall(self, minVolThick = 0):
+    
+        probeCall = f"{self.type} NAME=$(probe_path)/{self.name:22} INTERVAL $(probe_int) "
+
+        if self.type == "PROBE":
+            probeCall += f"GEOM FILE $(location_path)/{self.name + '.txt' :26}" 
+        
+        elif self.type == "VOLUMETRIC_PROBE":
+            mins = np.min(self.tile, axis = 0)
+            maxs = np.max(self.tile, axis = 0)
+            for i in range(3):
+              if (maxs[i] - mins[i]) < minVolThick:
+                offset = (minVolThick - (maxs[i] - mins[i]))/2
+                mins[i] -= offset
+                maxs[i] += offset
+            probeCall += f"GEOM BOX {mins[0]:f} {maxs[0]:f}  {mins[1]:f} {maxs[1]:f}  {mins[2]:f} {maxs[2]:f} " 
+        
+        elif self.type == "FLUX_PROBE":
+            mins = np.min(self.tile, axis = 0)
+            maxs = np.max(self.tile, axis = 0)
+            normalVec = maxs - mins
+            probeCall += f"XP {mins[0]:f} {mins[1]:f} {mins[2]:f} "
+            probeCall += f"NP {normalVec[0]:f} {normalVec[1]:f} {normalVec[2]:f} "
+
+        probeCall += "VARS $(vars)"
+        self.probeCall = probeCall
