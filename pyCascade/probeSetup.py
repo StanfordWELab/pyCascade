@@ -50,6 +50,7 @@ class Probes:
 
         if self.type == "PROBE":
             probeCall += f"GEOM FILE $(location_path)/{self.name + '.txt' :26}" 
+            probeCall += "VARS $(vars)"
         
         elif self.type == "VOLUMETRIC_PROBE":
             mins = np.min(self.tile, axis = 0)
@@ -60,6 +61,7 @@ class Probes:
                 mins[i] -= offset
                 maxs[i] += offset
             probeCall += f"GEOM BOX {mins[0]:f} {maxs[0]:f}  {mins[1]:f} {maxs[1]:f}  {mins[2]:f} {maxs[2]:f} " 
+            probeCall += "VARS $(vol_vars)"
         
         elif self.type == "FLUX_PROBE":
             mins = np.min(self.tile, axis = 0)
@@ -67,6 +69,6 @@ class Probes:
             normalVec = maxs - mins
             probeCall += f"XP {mins[0]:f} {mins[1]:f} {mins[2]:f} "
             probeCall += f"NP {normalVec[0]:f} {normalVec[1]:f} {normalVec[2]:f} "
+            probeCall += "VARS $(flux_vars)"
 
-        probeCall += "VARS $(vars)"
         self.probeCall = probeCall
