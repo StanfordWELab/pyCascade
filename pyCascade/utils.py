@@ -42,6 +42,14 @@ def end_timer(st, description):
     et = time.time()
     elapsed_time = round(et - st)
     print(f"{description} took {elapsed_time} seconds")
+
+
+def last_unique(a):
+    n_ind = len(a)
+    a, ind_unique = np.unique(np.flip(a), return_index = True)
+    ind_unique = n_ind-1-ind_unique
+    
+    return a, ind_unique
     
 
 # class MyLazyDict(dict):

@@ -1,4 +1,4 @@
-from pyCascade import utils, quantities
+from pyCascade import utils, quantities, probeReadWrite
 
 import glob
 import numpy as np
@@ -9,37 +9,7 @@ from dask import dataframe as dd
 from pandarallel import pandarallel
 import scipy as sp
 import os
-import shutil
 from IPython.core.debugger import set_trace
-
-def read_pointcloud_probes(filename):
-    return dd.read_csv(filename, delim_whitespace=True)  # read as dataframe
-
-def read_probes_csv(filename):
-    return dd.read_csv(filename, delimiter = ' ', comment = "#",header = None, assume_missing=True, encoding = 'utf-8')
-
-def read_probes(filename, file_type = 'csv'):
-    if file_type == 'csv':
-        ddf = read_probes_csv(filename)
-    elif file_type == 'parquet':
-        ddf = dd.read_parquet(filename)
-    else:
-        raise(f'file type {file_type} not supported')
-    step_index = ddf.iloc[:, 0] #grab the first column for the indixes
-    time_index = ddf.iloc[:, 1] #grab the second column for the times
-    ddf = ddf.iloc[:, 3:] #take the data less the index rows
-
-    _, n_cols = ddf.shape
-    ddf = ddf.rename(columns=dict(zip(ddf.columns, np.arange(0, n_cols)))) #reset columns to integer 0 indexed
-    ddf.columns.name = 'Stack'
-    ddf.index = step_index
-    return ddf, step_index, time_index
-
-def read_locations(filename):
-    locations = pd.read_csv(filename, delim_whitespace=True, comment = "#", names=['probe', 'x', 'y', 'z'], index_col = 'probe')
-    probes = locations.index.values
-    _, probe_ind = last_unique(probes)
-    return locations.iloc[probe_ind]
 
 
 def ddf_to_MIseries(ddf):
@@ -54,12 +24,6 @@ def ddf_to_pdf(df):
         df = df.compute()
     return df
 
-def last_unique(a):
-    n_ind = len(a)
-    a, ind_unique = np.unique(np.flip(a), return_index = True)
-    ind_unique = n_ind-1-ind_unique
-    
-    return a, ind_unique
 
 def mean_convergence(data_dict, t_data = None):
     def df_func(data_df):
@@ -196,7 +160,7 @@ class Probes(utils.Helper):
                 if self.file_type == 'parquet':
                     path = f"{self.directory_parquet}/{probe_name}.{probe_tbd1}.parquet"
                     
-                my_dict[(probe_name, probe_tbd1)], tbd2s, time = read_probes(path, self.file_type)
+                my_dict[(probe_name, probe_tbd1)], tbd2s, time = probeReadWrite.read_probes(path, self.file_type)
                     
                 if 'col' in probe_name: # assuming the cols are run in all runs
                     probe_tbd2s = tbd2s
@@ -208,7 +172,7 @@ class Probes(utils.Helper):
        
         probe_tbd2s = probe_tbd2s.compute().values
         self.steps_written = len(probe_tbd2s)
-        probe_tbd2s, unique_steps_indexes = last_unique(probe_tbd2s)
+        probe_tbd2s, unique_steps_indexes = utils.last_unique(probe_tbd2s)
         probe_times = probe_time.compute().values[unique_steps_indexes]
 
         self.data = my_dict
@@ -269,17 +233,7 @@ class Probes(utils.Helper):
                 for quant in quants:
                     parquet_path = f"{self.directory_parquet}/{name}.{quant}.parquet"
                     csv_path = f"{self.directory}/{name}.{quant}"
-                    isParquet = os.path.exists(parquet_path)
-                    if isParquet:
-                        if overwrite:
-                            shutil.rmtree(parquet_path)
-                        else:
-                            continue
-                    ddf = read_probes_csv(csv_path)
-                    ddf.index.name = "steps"
-                    st = utils.start_timer()
-                    ddf.columns = ddf.columns.astype(str)
-                    ddf.to_parquet(parquet_path) 
+                    probeReadWrite.csv_to_parquet(csv_path, parquet_path, overwrite)
                     utils.end_timer(st, f"writing parquet for {name} {quant}")
         
         
