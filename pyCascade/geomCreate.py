@@ -113,7 +113,7 @@ def makeProbedCube(size, nprobes, name, centered = False, spacing = "flux"):
                 ref_normal = 1 # normal is in the direction of the smallest dimension
             else:
                 ref_normal = 0
-            points = np.array([0, ref_normal])
+            points = np.array([-ref_normal, ref_normal])
             probeType = "FLUX_PROBE"
         else:
             raise Exception(f"spacing {spacing} not recognized")
