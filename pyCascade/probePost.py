@@ -116,11 +116,11 @@ def quick_apply(func):
     return lambda data_dict, t_data=None: func(data_dict)
 
 class Probes(utils.Helper):
-    def __init__(self, directory, probe_type = "PROBES", file_type = "csv",):
+    def __init__(self, directory, probe_type = "PROBES", file_type = "csv", flux_quants = None):
         """
         File info is stored in a tuple-indexed dictionary. Once data is access, it is read in as a (nested) tuple-indexed dictionary.
         For POINTCLOUD_PROBES data is indexed as self.data[(name,step)][(stack, quant)]. For PROBES data is indexed as 
-        self.data[(name, quant)][(stack, step)]. This format mimics the multiIndex DataFrame created in self.slice_into_df.
+        self.data[(name, quant)][(stack, step)].
         """
         
         # Set class properties  
@@ -143,31 +143,25 @@ class Probes(utils.Helper):
         if self.probe_type == "POINTCLOUD_PROBES":
             self.data, probe_names, probe_steps, probe_quants, probe_stack = probeReadWrite.readPointCloudProbes(path_generator)
         elif self.probe_type == "PROBES":
-            self.data, probe_names, probe_steps, probe_quants, probe_stack, probe_times = probeReadWrite.readPointProbes(path_generator, self.file_type, self.directory_parquet)
+            self.data, probe_names, probe_steps, probe_quants, probe_stack, probe_times, self.locations = probeReadWrite.readPointProbes(path_generator, self.file_type, self.directory_parquet)
+        elif self.probe_type == "FLUX_PROBES":
+            self.data, probe_names, probe_steps, probe_quants, probe_times, self.locations, self.areas = probeReadWrite.readFluxProbes(path_generator, self.file_type, self.directory_parquet, quants = flux_quants)
+            probe_stack = []
             
         self.steps_written = len(probe_steps)
         # remove steps and times that were written twice during run restarts
-        if self.probe_type == "PROBES":
+        if self.probe_type == "PROBES" or self.probe_type == "FLUX_PROBES":
             probe_steps, self.unique_steps_indexes = utils.last_unique(probe_steps)
             self.probe_times = probe_times.compute().values[self.unique_steps_indexes]
-            probe_steps = [int(step) for step in probe_steps]
+            self.probe_steps = [int(step) for step in probe_steps]
             self.dt = self.probe_times[-1]-self.probe_times[-2]
+        else:
+            self.probe_steps = utils.sort_and_remove_duplicates(probe_steps)
 
         # remove duplicates and sort
-        self.probe_names = utils.sort_and_remove_duplicates(probe_names)  # remove duplicates
-        self.probe_steps = utils.sort_and_remove_duplicates(probe_steps)
+        self.probe_names = utils.sort_and_remove_duplicates(probe_names)
         self.probe_quants = utils.sort_and_remove_duplicates(probe_quants)
         self.probe_stack = utils.sort_and_remove_duplicates(probe_stack)
-
-    def get_locations(self, dir_locations):
-        locations = {}
-        for probe_name in self.probe_names:
-            location_path = f"{dir_locations}/{probe_name}.README"
-            # preparing for lazy locprobeReadWrite.
-            locations[probe_name] = probeReadWrite.read_locations(location_path)
-            
-        self.locations = locations
-
         
     def to_parquet(
         self,
@@ -183,8 +177,10 @@ class Probes(utils.Helper):
                 for quant in quants:
                     parquet_path = f"{self.directory_parquet}/{name}.{quant}.parquet"
                     csv_path = f"{self.directory}/{name}.{quant}"
+                    st = utils.start_timer()
                     probeReadWrite.csv_to_parquet(csv_path, parquet_path, overwrite)
-                    utils.end_timer(st, f"writing parquet for {name} {quant}")
+                    if overwrite: 
+                        utils.end_timer(st, f"writing parquet for {name} {quant}")
         
         
     def process_data(
