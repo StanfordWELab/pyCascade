@@ -34,12 +34,7 @@ def read_flux_probes(filename, file_type = 'csv', quants = None):
     step_index = ddf.iloc[:, 1] #grab the first column for the indixes
     time_index = ddf.iloc[:, 2] #grab the second column for the times
     location = ddf.iloc[:, 3:6] #grab the locations
-    location = location.loc[0].compute() #compute for only step 0
-    location = location.iloc[-1] #get values from last step 0 (in case of restart)
-    location.index = ['x', 'y', 'z'] # set location index
     area = ddf.iloc[:, 6] #grab the area
-    area = area.loc[0].compute()
-    area = area.iloc[-1]
     ddf = ddf.iloc[:, 8:] #take the data less other rows
     if quants == None:
         _, n_cols = ddf.shape
@@ -165,7 +160,7 @@ def readFluxProbes(pathGenerator, file_type = 'csv', directory_parquet = None, q
         ddf, step, time, locations[probe_name], areas[probe_name] = read_flux_probes(path, file_type, quants)
             
         if gotTimes == False:
-            probe_steps = step
+            probe_steps = step.compute().values
             probe_times = time
             probe_quants = ddf.columns.values
             gotTimes = True
@@ -174,6 +169,4 @@ def readFluxProbes(pathGenerator, file_type = 'csv', directory_parquet = None, q
             my_dict[(probe_name, quant)] = ddf[[quant]]
 
         probe_names.append(probe_name)
-
-    probe_steps = probe_steps.compute().values
     return my_dict, probe_names, probe_steps, probe_quants, probe_times, locations, areas

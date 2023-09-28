@@ -202,6 +202,15 @@ class Probes(utils.Helper):
                 df = ddf.compute()
                 processed_data[(name, quant)] = df[stack]#.loc[steps[0]:steps[-1]]
 
+            if self.probe_type == "FLUX_PROBES":
+                location = self.locations[name].loc[0].compute() #compute for only step 0
+                location = location.iloc[-1] #get values from last step 0 (in case of restart)
+                location.index = ['x', 'y', 'z'] # set location index
+                self.locations[name] = location
+                area = self.areas[name].loc[0].compute()
+                area = area.iloc[-1]
+                self.areas[name] = area
+
         def index_unique_steps(df):
             if isinstance(df, (pd.core.frame.DataFrame, pd.core.series.Series)):
                 shift = self.steps_written - len(df.index)
