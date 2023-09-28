@@ -171,7 +171,7 @@ def readFluxProbes(pathGenerator, file_type = 'csv', directory_parquet = None, q
             gotTimes = True
         
         for quant in probe_quants:
-            my_dict[(probe_name, quant)] = ddf[quant]
+            my_dict[(probe_name, quant)] = ddf[[quant]]
 
         probe_names.append(probe_name)
 
