@@ -152,9 +152,10 @@ class Probes(utils.Helper):
         # remove steps and times that were written twice during run restarts
         if self.probe_type == "PROBES" or self.probe_type == "FLUX_PROBES":
             probe_steps, self.unique_steps_indexes = utils.last_unique(probe_steps)
-            self.probe_times = probe_times.compute().values[self.unique_steps_indexes]
+            self.probe_times = probe_times.compute().iloc[self.unique_steps_indexes]
+            self.probe_times.index = probe_steps
             self.probe_steps = [int(step) for step in probe_steps]
-            self.dt = self.probe_times[-1]-self.probe_times[-2]
+            self.dt = self.probe_times.iloc[-1]-self.probe_times.iloc[-2]
         else:
             self.probe_steps = utils.sort_and_remove_duplicates(probe_steps)
 
@@ -192,8 +193,7 @@ class Probes(utils.Helper):
         processing = None):
 
         quants, stack, names, steps = [self.get_input(input) for input in [quants, stack, names, steps]]
-        t_df = pd.Series(self.probe_times, index=self.probe_steps)
-        t_data = t_df.loc[steps]
+        t_data = self.probe_times.loc[steps]
         st = utils.start_timer()
         processed_data  = {}
         for name in names:
@@ -430,7 +430,7 @@ class Probes(utils.Helper):
                         xPlot *= plot_params['horizontal spacing']
 
                 if 'plot_every' in plot_params:  # usefull to plot subset of timesteps but run calcs across all timesteps
-                    name_df = plot_df.iloc[:,::plot_params['plot_every']]
+                    plot_df = plot_df.iloc[:,::plot_params['plot_every']]
                     xPlot =xPlot[::plot_params['plot_every']]
 
                 yPlot =  np.squeeze(plot_df.values)
