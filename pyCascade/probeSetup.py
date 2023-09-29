@@ -70,6 +70,7 @@ class Probes:
             normalVec = maxs - mins
             probeCall += f"XP {means[0]:f} {means[1]:f} {means[2]:f} "
             probeCall += f"NP {normalVec[0]:f} {normalVec[1]:f} {normalVec[2]:f} "
-            probeCall += f"VARS sn_prod({vars},{normalVec[0]:f},{normalVec[1]:f},{normalVec[2]:f}) "
+            probeCall += f"VARS mass_flux({vars}) "
+            probeCall += f"sn_prod(comp(u,{np.argmax(normalVec)}),{normalVec[0]:f},{normalVec[1]:f},{normalVec[2]:f}) "
 
         self.probeCall = probeCall
