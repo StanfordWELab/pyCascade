@@ -182,6 +182,19 @@ class Probes(utils.Helper):
                     probeReadWrite.csv_to_parquet(csv_path, parquet_path, overwrite)
                     if overwrite: 
                         utils.end_timer(st, f"writing parquet for {name} {quant}")
+
+    def get_flux_probe_loc_area(self, name):
+        location = self.locations[name]
+        area = self.areas[name]
+        if isinstance(location, (dd.core.DataFrame, dd.core.Series, dd.core.Scalar)):
+            location = location.loc[0].compute() #compute for only step 0
+            location = location.iloc[-1] #get values from last step 0 (in case of restart)
+            location.index = ['x', 'y', 'z'] # set location index
+            self.locations[name] = location
+        if isinstance(area, (dd.core.DataFrame, dd.core.Series, dd.core.Scalar)):
+            area = area.loc[0].compute()
+            area = area.iloc[-1]
+            self.areas[name] = area
         
         
     def process_data(
@@ -203,17 +216,7 @@ class Probes(utils.Helper):
                 processed_data[(name, quant)] = df[stack]#.loc[steps[0]:steps[-1]]
 
             if self.probe_type == "FLUX_PROBES":
-                location = self.locations[name]
-                area = self.areas[name]
-                if isinstance(location, (dd.core.DataFrame, dd.core.Series, dd.core.Scalar)):
-                    location = location.loc[0].compute() #compute for only step 0
-                    location = location.iloc[-1] #get values from last step 0 (in case of restart)
-                    location.index = ['x', 'y', 'z'] # set location index
-                    self.locations[name] = location
-                if isinstance(area, (dd.core.DataFrame, dd.core.Series, dd.core.Scalar)):
-                    area = area.loc[0].compute()
-                    area = area.iloc[-1]
-                    self.areas[name] = area
+                self.get_flux_probe_loc_area(name)
 
         def index_unique_steps(df):
             if isinstance(df, (pd.core.frame.DataFrame, pd.core.series.Series)):
