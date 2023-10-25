@@ -44,13 +44,13 @@ class Probes:
         tile[:,2] = np.repeat(z_range, n_x*n_y)
         self.tile = tile
 
-    def getProbeCall(self, minVolThick = 0):
+    def getProbeCall(self, minVolThick = 0, vars = ""):
     
         probeCall = f"{self.type} NAME=$(probe_path)/{self.name:22} INTERVAL $(probe_int) "
 
         if self.type == "PROBE":
             probeCall += f"GEOM FILE $(location_path)/{self.name + '.txt' :26}" 
-            probeCall += "VARS $(vars)"
+            probeCall += f"VARS {vars}"
         
         elif self.type == "VOLUMETRIC_PROBE":
             mins = np.min(self.tile, axis = 0)
@@ -61,14 +61,16 @@ class Probes:
                 mins[i] -= offset
                 maxs[i] += offset
             probeCall += f"GEOM BOX {mins[0]:f} {maxs[0]:f}  {mins[1]:f} {maxs[1]:f}  {mins[2]:f} {maxs[2]:f} " 
-            probeCall += "VARS $(vol_vars)"
+            probeCall += f"VARS {vars}"
         
         elif self.type == "FLUX_PROBE":
             mins = np.min(self.tile, axis = 0)
             maxs = np.max(self.tile, axis = 0)
+            means = np.mean(self.tile, axis = 0)
             normalVec = maxs - mins
-            probeCall += f"XP {mins[0]:f} {mins[1]:f} {mins[2]:f} "
+            probeCall += f"XP {means[0]:f} {means[1]:f} {means[2]:f} "
             probeCall += f"NP {normalVec[0]:f} {normalVec[1]:f} {normalVec[2]:f} "
-            probeCall += "VARS $(flux_vars)"
+            probeCall += f"VARS mass_flux({vars}) "
+            probeCall += f"sn_prod(comp(u,{np.argmax(normalVec)}),{normalVec[0]:f},{normalVec[1]:f},{normalVec[2]:f}) "
 
         self.probeCall = probeCall
