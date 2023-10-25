@@ -15,7 +15,7 @@ def LengthScale(uPrime, meanU, time, show_plot=False, C = "1"):
     Compute the length scale of the flow using the exponential fit method
     """
     func = lambda x, a: np.exp(-x/a) #define theoretical exponential decay function
-    time -= time[0] # shift time to start at zero
+    time -= time.iloc[0] # shift time to start at zero
     
     R_u = sm.tsa.stattools.acf(uPrime, nlags = len(time)-1, fft = True) # compute autocorrelation function
     R_uFit, _ = sp.optimize.curve_fit(func, time, R_u, p0=1, bounds = (0,np.inf)) # fit the exponential decay function to the autocorrelation function
@@ -79,7 +79,7 @@ class Qty(utils.Helper):
         self.y = None
 
     def computeQty(self, data_dict, t_data, theta_wind = 0, u_str = 'comp(u,0)', v_str = 'comp(u,1)', w_str = 'comp(u,2)', p_str = 'p', calc_stats = True):
-        self.fsamp = 1/(t_data[-1]-t_data[-2])
+        self.fsamp = 1/(t_data.iloc[-1]-t_data.iloc[-2])
         theta_wind *= np.pi / 180
         #claculating in frame aligned with mean wind
         self.u = data_dict[u_str] * np.cos(theta_wind) + data_dict[w_str] * np.sin(theta_wind)
