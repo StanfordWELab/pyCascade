@@ -4,6 +4,8 @@ from dask import dataframe as dd
 import os
 import shutil
 import numpy as np
+from IPython.core.debugger import set_trace
+
 
 def read_pointcloud_probes(filename):
     return dd.read_csv(filename, delim_whitespace=True)  # read as dataframe
@@ -35,7 +37,7 @@ def read_flux_probes(filename, file_type = 'csv', quants = None):
     time_index = ddf.iloc[:, 2] #grab the second column for the times
     location = ddf.iloc[:, 3:6] #grab the locations
     area = ddf.iloc[:, 6] #grab the area
-    ddf = ddf.iloc[:, 8:] #take the data less other rows
+    ddf = ddf.iloc[:, 8::2] #take the data less other rows
     if quants == None:
         _, n_cols = ddf.shape
         ddf = ddf.rename(columns=dict(zip(ddf.columns, np.arange(0, n_cols)))) #reset columns to integer 0 indexed
