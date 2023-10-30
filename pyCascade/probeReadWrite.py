@@ -73,6 +73,7 @@ def readPointCloudProbes(pathGenerator):
     """
     probe_names = []
     probe_steps = []
+    probe_paths = []
     
     # Initialize data structre
     my_dict = {}  # this will be a tuple indexed 1-level dictionary.
@@ -89,6 +90,7 @@ def readPointCloudProbes(pathGenerator):
 
         probe_names.append(probe_name)
         probe_steps.append(probe_step) 
+        probe_paths.append(path)
 
     probe_names = utils.sort_and_remove_duplicates(probe_names)
     
@@ -98,12 +100,13 @@ def readPointCloudProbes(pathGenerator):
         probe_stack = np.append(probe_stack, representative_df.columns.values)
         probe_quants = np.append(probe_quants, representative_df.index.values)
 
-    return my_dict, probe_names, probe_steps, probe_quants, probe_stack
+    return my_dict, probe_names, probe_steps, probe_quants, probe_stack, probe_paths
 
 
 def readPointProbes(pathGenerator, file_type = 'csv', directory_parquet = None):
     probe_names = []
     probe_quants = []
+    probe_paths = []
     
     # Initialize data structre
     my_dict = {}  # this will be a tuple indexed 1-level dictionary.
@@ -131,16 +134,18 @@ def readPointProbes(pathGenerator, file_type = 'csv', directory_parquet = None):
 
         probe_names.append(probe_name)
         probe_quants.append(probe_quant) 
+        probe_paths.append(path)
 
     probe_steps = probe_steps.compute().values
     probe_names = utils.sort_and_remove_duplicates(probe_names)
 
-    return my_dict, probe_names, probe_steps, probe_quants, probe_stack, probe_times, locations
+    return my_dict, probe_names, probe_steps, probe_quants, probe_stack, probe_times, locations, probe_paths
 
 
 def readFluxProbes(pathGenerator, file_type = 'csv', directory_parquet = None, quants = None):
     probe_names = []
     probe_quants = []
+    probe_paths = []
     
     # Initialize data structre
     my_dict = {}  # this will be a tuple indexed 1-level dictionary.
@@ -171,4 +176,5 @@ def readFluxProbes(pathGenerator, file_type = 'csv', directory_parquet = None, q
             my_dict[(probe_name, quant)] = ddf[[quant]]
 
         probe_names.append(probe_name)
-    return my_dict, probe_names, probe_steps, probe_quants, probe_times, locations, areas
+        probe_paths.append(path)
+    return my_dict, probe_names, probe_steps, probe_quants, probe_times, locations, areas, probe_paths
