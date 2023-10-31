@@ -36,6 +36,7 @@ def read_flux_probes(filename, file_type = 'csv', quants = None):
     step_index = ddf.iloc[:, 1] #grab the first column for the indixes
     time_index = ddf.iloc[:, 2] #grab the second column for the times
     location = ddf.iloc[:, 3:6] #grab the locations
+    location.columns = ['x', 'y', 'z']
     area = ddf.iloc[:, 6] #grab the area
     ddf = ddf.iloc[:, 8::2] #take the data less other rows
     if quants == None:
