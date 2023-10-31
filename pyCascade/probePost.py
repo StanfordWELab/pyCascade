@@ -174,14 +174,13 @@ class Probes(utils.Helper):
         
         #write parquet files
         if self.file_type == "csv":
-            for name in names:
-                for quant in quants:
-                    parquet_path = f"{self.directory_parquet}/{name}.{quant}.parquet"
-                    csv_path = f"{self.directory}/{name}.{quant}"
-                    st = utils.start_timer()
-                    probeReadWrite.csv_to_parquet(csv_path, parquet_path, overwrite)
-                    if overwrite: 
-                        utils.end_timer(st, f"writing parquet for {name} {quant}")
+            for csv_path in self.probe_paths:
+                local_path = csv_path.split('/')[-1]
+                parquet_path = f"{self.directory_parquet}/{local_path}.parquet"
+                st = utils.start_timer()
+                probeReadWrite.csv_to_parquet(csv_path, parquet_path, overwrite)
+                if overwrite: 
+                    utils.end_timer(st, f"writing {parquet_path}")
 
     def get_flux_probe_loc_area(self, name):
         location = self.locations[name]
@@ -479,6 +478,9 @@ class Probes(utils.Helper):
         processed_data = self.process_data(names, steps, quants, stack, processing)
         processed_data = utils.dict_apply(ddf_to_pdf)(processed_data)
         df_data = pd.Series(processed_data).unstack()
+        if df_data.shape[1] == 1:
+            df_data = df_data.iloc[:,0] # convert to series
+            df_data = df_data.map(lambda x : x.to_numpy()[0])
         return df_data
 
 
