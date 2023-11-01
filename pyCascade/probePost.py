@@ -165,18 +165,16 @@ class Probes(utils.Helper):
         self.probe_stack = utils.sort_and_remove_duplicates(probe_stack)
         
     def get_avg_locations(self):
-        if self.probe_type == "FLUX_PROBES":
-            def getAverageLocation(locs_ddf):
-                locs_ddf = locs_ddf.compute()
-                avg_loc = locs_ddf.iloc[0,:]
-                return avg_loc
-        else:
-            def getAverageLocation(locs_ddf):
-                avg_loc = locs_ddf.mean()
-                avg_loc = avg_loc.compute()
-                return avg_loc
-        avg_locs = utils.dict_apply(getAverageLocation)(self.locations)
-        return pd.concat(avg_locs, axis = "columns").T
+        def getaveragelocation(locs_ddf):
+            avg_loc = ddf_to_pdf(locs_ddf)
+            if isinstance(avg_loc, pd.core.series.Series) == False:
+                if self.probe_type == "FLUX_PROBES":
+                    avg_loc = avg_loc.iloc[0,:]
+                else:
+                    avg_loc = avg_loc.mean(axis = "index")
+            return avg_loc
+        avg_locs = utils.dict_apply(getaveragelocation)(self.locations)
+        return pd.DataFrame(avg_locs).T
     
         
     def to_parquet(
