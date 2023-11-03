@@ -24,15 +24,21 @@ def ddf_to_pdf(df):
         df = df.compute()
     return df
 
-
-def mean_convergence(data_dict, t_data = None):
+def cumulative_mean(data_dict, t_data = None):
     def df_func(data_df):
         time_sum = data_df.cumsum(axis='index')
-        cum_avg = time_sum.div(time_sum.index, axis='index')  # cumumlative averge
-        last_time = cum_avg.index[-1]
-        last_avg = cum_avg.loc[last_time]
-        data_diff = cum_avg - last_avg.values
-        data_diff_norm = np.abs(data_diff/last_avg.values)
+        n_samples = time_sum.index - time_sum.index[0] + 1
+        cum_avg = time_sum.div(n_samples, axis='index')  # cumumlative averge
+        return cum_avg
+    return utils.dict_apply(df_func)(data_dict)
+
+def convergence(data_dict, t_data = None):
+    def df_func(data_df):
+        last_time = data_df.index[-1]
+        last_val = data_df.loc[last_time]
+        data_diff = data_df - last_val.values
+        # data_diff_norm = np.abs(data_diff/last_val.values)
+        data_diff_norm = data_diff
         return data_diff_norm
 
     return utils.dict_apply(df_func)(data_dict)
@@ -470,9 +476,8 @@ class Probes(utils.Helper):
                     fig.supxlabel(plot_params['xlabel'])
                 if 'ylabel' in plot_params:
                     fig.supylabel(plot_params['ylabel'])
-                ax.legend()
+                ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
         
-
         return fig, ax
 
     def statistics(
