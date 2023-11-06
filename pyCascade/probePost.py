@@ -24,6 +24,10 @@ def ddf_to_pdf(df):
         df = df.compute()
     return df
 
+def reverse(data_dict, t_data = None):
+    df_func = lambda data_df: data_df.iloc[::-1]
+    return utils.dict_apply(df_func)(data_dict)
+
 def cumulative_mean(data_dict, t_data = None):
     def df_func(data_df):
         time_sum = data_df.cumsum(axis='index')
@@ -464,7 +468,7 @@ class Probes(utils.Helper):
                         xPlot *= plot_params['horizontal spacing']
 
                 if 'plot_every' in plot_params:  # usefull to plot subset of timesteps but run calcs across all timesteps
-                    plot_df = plot_df.iloc[:,::plot_params['plot_every']]
+                    plot_df = plot_df.iloc[::plot_params['plot_every']]
                     xPlot =xPlot[::plot_params['plot_every']]
 
                 yPlot =  np.squeeze(plot_df.values)
@@ -498,7 +502,13 @@ class Probes(utils.Helper):
         df_data = pd.Series(processed_data).unstack()
         if df_data.shape[1] == 1:
             df_data = df_data.iloc[:,0] # convert to series
-            df_data = df_data.map(lambda x : x.to_numpy()[0])
+            isSeries = df_data.map(lambda df: True if df.shape[0] == df.size else False) # check if each value is a series
+            isSeries = isSeries.to_numpy().prod()
+            if isSeries:
+                df_data = df_data.map(lambda df: df.iloc[:,0] if isinstance(df, pd.core.frame.DataFrame) else df)
+                df_data = pd.concat(df_data.to_dict(), axis = "columns")
+                if isinstance(df_data.keys(), pd.MultiIndex):
+                    df_data = df_data.droplevel(-1, axis = "columns")
         return df_data
 
 
