@@ -24,43 +24,42 @@ def ddf_to_pdf(df):
         df = df.compute()
     return df
 
-def reverse(data_dict, t_data = None):
-    df_func = lambda data_df: data_df.iloc[::-1]
-    return utils.dict_apply(df_func)(data_dict)
+@utils.no_kwargs
+@utils.dict_apply
+def reverse(df):
+    return df.iloc[::-1]
 
-def cumulative_mean(data_dict, t_data = None):
-    def df_func(data_df):
-        time_sum = data_df.cumsum(axis='index')
-        n_samples = time_sum.index - time_sum.index[0] + 1
-        cum_avg = time_sum.div(n_samples, axis='index')  # cumumlative averge
-        return cum_avg
-    return utils.dict_apply(df_func)(data_dict)
+@utils.no_kwargs
+@utils.dict_apply
+def cumulative_mean(df):
+    time_sum = df.cumsum(axis='index')
+    n_samples = time_sum.index - time_sum.index[0] + 1
+    cum_avg = time_sum.div(n_samples, axis='index')  # cumumlative averge
+    return cum_avg
 
-def convergence(data_dict, t_data = None):
-    def df_func(data_df):
-        last_time = data_df.index[-1]
-        last_val = data_df.loc[last_time]
-        data_diff = data_df - last_val.values
-        # data_diff_norm = np.abs(data_diff/last_val.values)
-        data_diff_norm = data_diff
-        return data_diff_norm
+@utils.no_kwargs
+@utils.dict_apply
+def convergence(df):
+    last_time = df.index[-1]
+    last_val = df.loc[last_time]
+    data_diff = df - last_val.values
+    # data_diff_norm = np.abs(data_diff/last_val.values)
+    data_diff_norm = data_diff
+    return data_diff_norm
 
-    return utils.dict_apply(df_func)(data_dict)
+@utils.no_kwargs
+@utils.dict_apply
+def time_average(df):
+    return df.mean(axis='index')
 
-
-def time_average(data_dict, t_data = None):
-    df_func = lambda df: df.mean(axis='index')
-    return utils.dict_apply(df_func)(data_dict)
-
-def time_rms(data_dict, t_data = None):
-    def df_func(data_df):
-        mean = data_df.mean(axis='index')
-        norm_data = data_df - mean
-        diff_squared = (norm_data**2)
-        rms = np.sqrt(diff_squared.mean())
-        return rms
-
-    return utils.dict_apply(df_func)(data_dict)
+@utils.no_kwargs
+@utils.dict_apply
+def time_rms(df):
+    mean = df.mean(axis='index')
+    norm_data = df - mean
+    diff_squared = (norm_data**2)
+    rms = np.sqrt(diff_squared.mean())
+    return rms
 
 
 def ClenshawCurtis_Quadrature(data_dict, t_data=None):
@@ -111,19 +110,13 @@ def linear_quadrature(data_dict, t_data=None):
     # Apply the function to the data dictionary
     return utils.dict_apply(df_func)(data_dict)
 
-# use to define lambda function with mul preset
+# use to define function with mul preset
 def mul_names(data_dict, names, mul, t_data=None):
     for k, v in data_dict.items():
         name, _ = k
         if name in names:
             data_dict[k] = mul*v
     return data_dict
-
-def quick_dict_apply(df_func):
-    return lambda data_dict, t_data=None: utils.dict_apply(df_func)(data_dict)
-
-def quick_apply(func):
-    return lambda data_dict, t_data=None: func(data_dict)
 
 class Probes(utils.Helper):
     def __init__(self, directory, probe_type = "PROBES", file_type = "csv", flux_quants = None):
@@ -256,7 +249,7 @@ class Probes(utils.Helper):
         if processing is not None:
             for i, process_step in enumerate(processing):
                 # set_trace()
-                processed_data = process_step(processed_data, t_data)
+                processed_data = process_step(processed_data, t_data = t_data)
         
         utils.end_timer(st, 'processing data')
         return processed_data

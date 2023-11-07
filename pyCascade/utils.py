@@ -50,6 +50,10 @@ def last_unique(a):
     ind_unique = n_ind-1-ind_unique
     
     return a, ind_unique
+
+
+def no_kwargs(func):
+    return lambda *args, **kwargs: func(*args)
     
 
 # class MyLazyDict(dict):
