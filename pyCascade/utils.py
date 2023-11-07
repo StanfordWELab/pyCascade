@@ -1,5 +1,6 @@
 import time
 import numpy as np
+from functools import wraps
 from IPython.core.debugger import set_trace
 
 class Helper:
@@ -30,9 +31,6 @@ def sort_and_remove_duplicates(l):
     l.sort()
     return l
 
-def dict_apply(f):
-    return lambda d: {k: f(v) for k, v in d.items()}
-
 def start_timer(description = None):
     if description != None:
         print(description)
@@ -53,8 +51,19 @@ def last_unique(a):
 
 
 def no_kwargs(func):
-    return lambda *args, **kwargs: func(*args)
-    
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        return func(*args)
+    return wrapper
+
+def dict_apply(func):
+    @wraps(func)
+    def wrapper(d):
+        if isinstance(d, dict):
+            return {k: func(v) for k, v in d.items()}
+        else:
+            return func(d)
+    return wrapper
 
 # class MyLazyDict(dict):
 #     '''
