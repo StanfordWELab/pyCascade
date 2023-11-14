@@ -64,8 +64,10 @@ class Probes:
             probeCall += f"VARS {vars}"
         
         elif self.type == "FLUX_PROBE":
-            mins = np.min(self.tile, axis = 0)
-            maxs = np.max(self.tile, axis = 0)
+            # mins = np.min(self.tile, axis = 0)
+            # maxs = np.max(self.tile, axis = 0)
+            mins = self.tile[0, :]
+            maxs = self.tile[-1, :]
             means = np.mean(self.tile, axis = 0)
             normalVec = maxs - mins
             probeCall += f"XP {means[0]:f} {means[1]:f} {means[2]:f} "
