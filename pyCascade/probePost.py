@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 from matplotlib import cm, colors
 import pandas as pd
 from dask import dataframe as dd
-from pandarallel import pandarallel
+# from pandarallel import pandarallel
 import scipy as sp
 import os
 from IPython.core.debugger import set_trace
@@ -117,6 +117,81 @@ def mul_names(data_dict, names, mul, t_data=None):
         if name in names:
             data_dict[k] = mul*v
     return data_dict
+
+def addWindowDetails(flowStats, locations = None, areas = None):
+    windowType = []
+    houseType = []
+    blockType = []
+    for window, row in flowStats.iterrows():
+        windowData = window.replace("_h_", '_')
+        windowData = windowData.split('_')
+        if len(windowData) == 3:
+            windowData.append('')
+        windowType.append(f"{windowData[0]}_{windowData[1]}")
+        houseType.append(windowData[2])
+        blockType.append(windowData[3])
+
+    flowStats["windowType"] = windowType
+    flowStats["houseType"] = houseType
+    flowStats["blockType"] = blockType
+
+    retrievedIndex = flowStats.index
+    if areas is not None:
+        flowStats["area"] = areas
+    if locations is not None:
+        flowStats = pd.concat([flowStats, locations], axis = "columns")
+    flowStats = flowStats.loc[retrievedIndex]
+    return flowStats
+
+
+def genKey(type, house, block):
+    key = f"{type}_h_{house}_{block}"
+    key = key.rstrip('_')
+    return key.replace("h_sl", "sl")
+
+def roomStatistics(windowStats, windowMap, roomQois):
+    for key in ["houseType", "blockType", "windowType", "x", "y", "z"]:
+        if key not in windowStats:
+            raise Exception("missing requisit information. Try running 'probePost.addWindowDetails' before this function")
+    houses = set(windowStats["houseType"])
+    blocks = set(windowStats["blockType"])
+    dims = ['x', 'y', 'z']
+
+    roomVentilation = {}
+    roomLocs = {}
+
+    for windowKey, row in windowStats.iterrows():
+        i = 0
+        for room, windows in windowMap.items():
+            i += 1
+            if row["windowType"] in windows:
+                break
+            if i == len(windowMap.keys()):
+                raise Exception(f"room not found for window f{windowKey}")
+
+        roomKey = genKey(room, row["houseType"], row["blockType"])
+        if roomKey not in roomVentilation:
+            roomVentilation[roomKey] = {}
+            for qoi in roomQois:
+                roomVentilation[roomKey][qoi] = 0
+        if roomKey not in roomLocs:
+            roomLocs[roomKey] = {}
+            for d in dims:
+                roomLocs[roomKey][d] = []
+        for qoi in roomQois:
+            roomVentilation[roomKey][qoi] += np.abs(windowStats.loc[windowKey, qoi]) / 2
+        for d in dims:
+            roomLocs[roomKey][d].append(windowStats.loc[windowKey, d])
+
+        roomVentilation[roomKey].update(row[["houseType", "blockType"]])
+        roomVentilation[roomKey]["roomType"] = room
+
+    roomVentilation = pd.DataFrame(roomVentilation).T  
+    roomLocs = pd.DataFrame(roomLocs).T
+    roomLocs = roomLocs.map(lambda L: np.mean(L))
+
+    return pd.concat([roomVentilation, roomLocs], axis = "columns")
+
 
 class Probes(utils.Helper):
     def __init__(self, directory, probe_type = "PROBES", file_type = "csv", flux_quants = None):
@@ -503,5 +578,3 @@ class Probes(utils.Helper):
                 if isinstance(df_data.keys(), pd.MultiIndex):
                     df_data = df_data.droplevel(-1, axis = "columns")
         return df_data
-
-
