@@ -156,6 +156,8 @@ def roomStatistics(windowStats, windowMap, roomQois):
     houses = set(windowStats["houseType"])
     blocks = set(windowStats["blockType"])
     dims = ['x', 'y', 'z']
+    if "mean" in roomQois:
+        roomQois.append("contResid")
 
     roomVentilation = {}
     roomLocs = {}
@@ -179,7 +181,11 @@ def roomStatistics(windowStats, windowMap, roomQois):
             for d in dims:
                 roomLocs[roomKey][d] = []
         for qoi in roomQois:
-            roomVentilation[roomKey][qoi] += np.abs(windowStats.loc[windowKey, qoi]) / 2
+            if qoi == "contResid":
+                addValue = windowStats.loc[windowKey, "mean"]
+            else:
+                addValue = np.abs(windowStats.loc[windowKey, qoi]) / 2
+            roomVentilation[roomKey][qoi] += addValue
         for d in dims:
             roomLocs[roomKey][d].append(windowStats.loc[windowKey, d])
 
@@ -277,12 +283,12 @@ class Probes(utils.Helper):
         location = self.locations[name]
         area = self.areas[name]
         if isinstance(location, (dd.core.DataFrame, dd.core.Series, dd.core.Scalar)):
-            location = location.loc[0].compute() #compute for only step 0
+            location = location.loc[10].compute() #compute for only step 10 (weird thing at step 0 once)
             location = location.iloc[-1] #get values from last step 0 (in case of restart)
             location.index = ['x', 'y', 'z'] # set location index
             self.locations[name] = location
         if isinstance(area, (dd.core.DataFrame, dd.core.Series, dd.core.Scalar)):
-            area = area.loc[0].compute()
+            area = area.loc[10].compute()
             area = area.iloc[-1]
             self.areas[name] = area
         
