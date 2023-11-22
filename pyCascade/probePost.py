@@ -161,6 +161,7 @@ def roomStatistics(windowStats, windowMap, roomQois):
 
     roomVentilation = {}
     roomLocs = {}
+    roomList = []
 
     for windowKey, row in windowStats.iterrows():
         i = 0
@@ -191,7 +192,9 @@ def roomStatistics(windowStats, windowMap, roomQois):
 
         roomVentilation[roomKey].update(row[["houseType", "blockType"]])
         roomVentilation[roomKey]["roomType"] = room
+        roomList.append(room)
 
+    windowStats["roomType"] = roomList # modifying in place, should modify outside function i.e. PBR
     roomVentilation = pd.DataFrame(roomVentilation).T  
     roomLocs = pd.DataFrame(roomLocs).T
     roomLocs = roomLocs.map(lambda L: np.mean(L))
