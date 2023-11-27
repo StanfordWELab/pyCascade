@@ -120,18 +120,24 @@ def mul_names(data_dict, names, mul, t_data=None):
 
 def addWindowDetails(flowStats, locations = None, areas = None):
     windowType = []
+    openingType = []
     houseType = []
     blockType = []
+    windowNumber = []
     for window, row in flowStats.iterrows():
         windowData = window.replace("_h_", '_')
         windowData = windowData.split('_')
         if len(windowData) == 3:
             windowData.append('')
         windowType.append(f"{windowData[0]}_{windowData[1]}")
+        openingType.append(windowData[0])
+        windowNumber.append(windowData[1])
         houseType.append(windowData[2])
         blockType.append(windowData[3])
 
     flowStats["windowType"] = windowType
+    flowStats["openingType"] = openingType
+    flowStats["windowNumber"] = windowNumber
     flowStats["houseType"] = houseType
     flowStats["blockType"] = blockType
 
