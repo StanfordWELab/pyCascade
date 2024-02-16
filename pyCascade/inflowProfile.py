@@ -1,8 +1,8 @@
 # Function that generates the profile specification files for a turbulent inflow
 
 # Example usage:
-# python3 pyCascade/pyCascade/inflowProfile.py --n 400 --x -40 --z 0 --y0 0 --y1 30 --rough 0.000005 --UatZ 15 1.07 --Iu 0.1087 --method 'ASCE' --multiply 4 --filefmt 'rows' --filename 'inflowProfile_30m_x4.dat'
-# python3 pyCascade/pyCascade/inflowProfile.py --n 400 --x -40 --z 0 --y0 0 --y1 30 --rough 0.000005 --UatZ 15 1.07 --Iu 0.1087 --method 'ASCE' --multiply 4 --filefmt 'table' --filename 'turbInflowProfile_30m_x4.dat'
+# python3 pyCascade/pyCascade/inflowProfile.py --n 400 --x -40 --z 0 --y0 0 --y1 30 --rough 0.000005 --UatZ 15 1.07 --Iu 0.1087 --method 'ASCE' --multiply 4 --multiplyuu False --filefmt 'rows' --filename 'inflowProfile_30m_x4.dat'
+# python3 pyCascade/pyCascade/inflowProfile.py --n 400 --x -40 --z 0 --y0 0 --y1 30 --rough 0.000005 --UatZ 15 1.07 --Iu 0.1087 --method 'ASCE' --multiply 4 --multiplyuu False --filefmt 'table' --filename 'turbInflowProfile_30m_x4.dat'
 
 import numpy as np
 import argparse
@@ -21,6 +21,8 @@ def main():
     parser.add_argument('--ustar', type=float, help='Friction velocity of log law')
     parser.add_argument('--UatZ', type=float, nargs=2, help='Velocity at altitude, e.g. for 10 m/s at 100 m: --UatZ 10 100')
     parser.add_argument('--method', type=str, default='ASCE', help='"ASCE" for the method prescribed in ASCE7, "Stull" for the method from the Stull textbook. Defaults to ASCE')
+    parser.add_argument('--multiply', type=float, default=1.0, help='Factor by which to multiply Reynolds stresses')
+    parser.add_argument('--multiplyuu', type=bool, default=False, help='Whether to multiply uu by the factor (see above)')
     parser.add_argument('--filename', type=str, default='inflowProfile.dat', help='Name of filename to write to')
     parser.add_argument('--filefmt', type=str, default='rows', help='For the inflowProfile.dat file, use "rows" to have one value per row, "table" to have multiple columns')
     parser.add_argument('--plot', help='Include to plot profiles', action='store_true')
@@ -48,7 +50,7 @@ def main():
     W = np.zeros((N, ))
 
     # Turbulence intensities:
-    uu = np.power(np.divide(U, np.log(y/args.rough)), 2)
+    uu_1x = np.power(np.multiply(args.Iu, U), 2)
     vw = np.zeros((N, ))
     uw = np.zeros((N, ))
     
@@ -62,9 +64,9 @@ def main():
         ww = vv * args.multiply
         uv = -vv * args.multiply
     else:
-        vv = 0.25 * uu 
-        ww = 0.64 * uu
-        uv = -(ustar ** 2) * np.ones((N, ))
+        vv = 0.25 * uu_1x * args.multiply
+        ww = 0.64 * uu_1x * args.multiply
+        uv = -(ustar ** 2) * np.ones((N, )) * args.multiply
         # Check the realizability constraint:
         realizability_cond = np.sqrt(np.multiply(uu_1x, vv))
         uv = - np.minimum(np.abs(uv), realizability_cond)
