@@ -1,20 +1,8 @@
 # Function that generates the profile specification files for a turbulent inflow
+
 # Example usage:
 # python3 pyCascade/pyCascade/inflowProfile.py --n 400 --x -40 --z 0 --y0 0 --y1 30 --rough 0.000005 --UatZ 15 1.07 --Iu 0.1087 --method 'ASCE' --multiply 4 --filefmt 'rows' --filename 'inflowProfile_30m_x4.dat'
 # python3 pyCascade/pyCascade/inflowProfile.py --n 400 --x -40 --z 0 --y0 0 --y1 30 --rough 0.000005 --UatZ 15 1.07 --Iu 0.1087 --method 'ASCE' --multiply 4 --filefmt 'table' --filename 'turbInflowProfile_30m_x4.dat'
-
-# ARGUMENTS:
-# --n        Number of points (defaults to 100 if none given)
-# --x        x location of inlet (defaults to 0 if none given)
-# --z        z location of inlet (defaults to 0 if none given)
-# --y0       Min height of turb inlet (defaults to 0 if none given)
-# --y1       Max height of turb inlet
-# --rough    Roughness length of log law
-# --ustar    Friction velocity of log law
-# --UatZ     Instead of friction velocity, specify U at some altitude
-# --method   'ASCE' for the method prescribed in ASCE7, 'Stull' for the method from the Stull textbook. Defaults to ASCE
-# --filename Where to write the .dat file (other files must have standard name, so not an option)
-# --plot     Flag to plot resulting profiles
 
 import numpy as np
 import argparse
