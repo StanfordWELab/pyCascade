@@ -209,7 +209,7 @@ def roomStatistics(windowStats, windowMap, roomQois):
 
 
 class Probes(utils.Helper):
-    def __init__(self, directory, probe_type = "PROBES", file_type = "csv", flux_quants = None):
+    def __init__(self, directory, probe_type = "PROBES", file_type = "csv", directory_parquet = None, flux_quants = None):
         """
         File info is stored in a tuple-indexed dictionary. Once data is access, it is read in as a (nested) tuple-indexed dictionary.
         For POINTCLOUD_PROBES data is indexed as self.data[(name,step)][(stack, quant)]. For PROBES data is indexed as 
@@ -220,7 +220,10 @@ class Probes(utils.Helper):
         self.probe_type = probe_type
         self.file_type = file_type
         self.directory = directory
-        self.directory_parquet = f'{directory}/../probesOut_parquet'
+        if directory_parquet == None:
+            self.directory_parquet = f'{directory}/../probesOut_parquet'
+        else:
+            self.directory_parquet = directory_parquet
 
         # Prepare paruet directory if reading csvs 
         if self.file_type == "csv":
@@ -230,7 +233,10 @@ class Probes(utils.Helper):
 
         # create a generator to iterate over probe paths
         
-        path_generator = glob.iglob(f'{directory}/*.*')
+        if file_type == "parquet":
+            path_generator = glob.iglob(f'{self.directory_parquet}/*.*')
+        else:
+            path_generator = glob.iglob(f'{self.directory}/*.*')
 
         # get data dict and associated info 
         if self.probe_type == "POINTCLOUD_PROBES":

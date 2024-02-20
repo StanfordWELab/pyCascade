@@ -49,8 +49,15 @@ def read_flux_probes(filename, file_type = 'csv', quants = None):
     ddf.index = step_index
     return ddf, step_index, time_index, location, area
 
-def read_locations(filename):
-    locations = pd.read_csv(filename, delim_whitespace=True, comment = "#", names=['probe', 'x', 'y', 'z'], index_col = 'probe')
+def read_locations(filename, file_type):
+    if file_type == 'csv':
+        locations = pd.read_csv(filename, delim_whitespace=True, comment = "#", header = None)
+    elif file_type == 'parquet':
+        locations = pd.read_parquet(filename)
+    else:
+        raise(f'file type {file_type} not supported')
+    locations.columns = ['probe', 'x', 'y', 'z']
+    locations.set_index('probe', inplace = True)
     probes = locations.index.values
     _, probe_ind = utils.last_unique(probes)
     return locations.iloc[probe_ind]
@@ -67,6 +74,7 @@ def csv_to_parquet(csv_path, parquet_path, overwrite = False):
     ddf.columns = ddf.columns.astype(str)
     ddf.to_parquet(parquet_path) 
     return
+
     
 def readPointCloudProbes(pathGenerator):
     """
@@ -80,6 +88,7 @@ def readPointCloudProbes(pathGenerator):
     my_dict = {}  # this will be a tuple indexed 1-level dictionary.
 
     for path in pathGenerator:
+        path = path.replace(".parquet", '')
         if ".pcb" not in path:
             continue
         file_name = path.split('/')[-1]  # get the local file name
@@ -116,15 +125,15 @@ def readPointProbes(pathGenerator, file_type = 'csv', directory_parquet = None):
     for path in pathGenerator:
         if ".pcp" in path or ".fp" in path:
             continue
+        probe_paths.append(path)
         file_name = path.split('/')[-1]  # get the local file name
-        probe_info = file_name.split('.')
+        probe_info = file_name.replace(".parquet", '')
+        probe_info = probe_info.split('.')
         probe_name, probe_quant = probe_info[:]
         if probe_quant == 'README':
-            locations[probe_name] = read_locations(path)
+            locations[probe_name] = read_locations(path, file_type)
             continue
         # store the pcd path and pcd reader function
-        if file_type == 'parquet':
-            path = f"{directory_parquet}/{probe_name}.{probe_quant}.parquet"
             
         my_dict[(probe_name, probe_quant)], step, time = read_probes(path, file_type)
             
@@ -135,7 +144,6 @@ def readPointProbes(pathGenerator, file_type = 'csv', directory_parquet = None):
 
         probe_names.append(probe_name)
         probe_quants.append(probe_quant) 
-        probe_paths.append(path)
 
     probe_steps = probe_steps.compute().values
     probe_names = utils.sort_and_remove_duplicates(probe_names)
@@ -159,11 +167,10 @@ def readFluxProbes(pathGenerator, file_type = 'csv', directory_parquet = None, q
         if ".fp" not in path:
             continue
         file_name = path.split('/')[-1]  # get the local file name
-        probe_info = file_name.split('.')
+        probe_info = file_name.replace(".parquet", '')
+        probe_info = probe_info.split('.')
         probe_name = probe_info[0]
         # store the pcd path and pcd reader function
-        if file_type == 'parquet':
-            path = f"{directory_parquet}/{probe_name}.fp.parquet"
             
         ddf, step, time, locations[probe_name], areas[probe_name] = read_flux_probes(path, file_type, quants)
             
