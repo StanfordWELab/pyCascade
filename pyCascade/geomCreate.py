@@ -207,18 +207,17 @@ def makeDoors(rooms_params, w, h, nprobes_w, nprobes_h):
             size = (wthick*2.2, h, w)
             nprobes = (1, nprobes_h, nprobes_w)
             door = makeProbedCube(size, nprobes, f"xdoor_{i}-{k}", True)
-            door.translate(disp)
         elif orientation == 'z':
             disp = (x*(i+.5), y/2, z*k)
             size = (w, h, wthick*2.2)
             nprobes = (nprobes_w, nprobes_h, 1)
             door = makeProbedCube(size, nprobes, f"zdoor_{i}-{k}", True)
-            door.translate(disp)
+        door.translate(disp)
         doors_list.append(door)
 
     return sumProbedGeom(doors_list)
 
-def makeWindows(rooms_params, w, h, nprobes_w, nprobes_h):
+def makeWindows(rooms_params, w, h, nprobes_w, nprobes_h, extraProbeTiles = []):
     x = rooms_params['x']
     y = rooms_params['y']
     z = rooms_params['z']
@@ -234,14 +233,13 @@ def makeWindows(rooms_params, w, h, nprobes_w, nprobes_h):
             size = (wthick*1.1, h, w)
             nprobes = (1, nprobes_h, nprobes_w)
             window = makeProbedCube(size, nprobes, f"xwindow_{i}-{k}", True)
-            window.translate(disp)
         elif orientation == 'z':
             edge_shift = wthick * (0.5 - (k!=0))
             disp = (x*(i+.5), y/2, z*(k+(k!=0)) + edge_shift)
             size = (w, h, wthick*1.1)
             nprobes = (nprobes_w, nprobes_h, 1)
             window = makeProbedCube(size, nprobes, f"zwindow_{i}-{k}", True)
-            window.translate(disp)
+        window.translate(disp)
         windows_list.append(window)
 
     return sumProbedGeom(windows_list)
@@ -261,13 +259,12 @@ def openWalls(rooms_params, w, h, nprobes_w, nprobes_h):
             size = (wthick*2.2, h, w)
             nprobes = (1, nprobes_h, nprobes_w)
             door = makeProbedCube(size, nprobes, f"xwall_{i}-{k}", True)
-            door.translate(disp)
         elif orientation == 'z':
             disp = (x*(i+.5), y/2, z*k)
             size = (w, h, wthick*2.2)
             nprobes = (nprobes_w, nprobes_h, 1)
             door = makeProbedCube(size, nprobes, f"zwall_{i}-{k}", True)
-            door.translate(disp)
+        door.translate(disp)
         walls_list.append(door)
 
     return sumProbedGeom(walls_list)
