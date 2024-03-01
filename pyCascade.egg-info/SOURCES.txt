@@ -6,6 +6,7 @@ pyCascade/inflowProfile.py
 pyCascade/physics.py
 pyCascade/png2video.py
 pyCascade/probePost.py
+pyCascade/probeReadWrite.py
 pyCascade/probeSetup.py
 pyCascade/quantities.py
 pyCascade/utils.py
