@@ -10,6 +10,7 @@ class ProbedGeom:
     def __init__(self, geom, probes = []):
         self.geom = geom
         self.probes = probes
+        self.checkIntegrity()
 
     def __add__(self, x: "ProbedGeom"):
         """
@@ -58,6 +59,10 @@ class ProbedGeom:
         self.geom = scale(v)(self.geom)
         for probe_instance in self.probes: probe_instance.tile *= v
 
+    def checkIntegrity(self):
+        for probe in self.probes:
+            foo = probe.tile.shape
+
     def append_names(self, text):
         for probe in self.probes:
             probe.name = f'{probe.name}_{text}'
@@ -68,12 +73,32 @@ class ProbedGeom:
         """
         self.probes = [probe for probe in self.probes if probe.tile.shape[0] != 0]
 
-    def writeProbesToFile(self, directory, nameInclude = "", nameExclude = "100gecs"):
+    def writeProbesToSingleFile(self, directory, nameInclude = "", nameExclude = "100gecs"):
+        self.removeZeroProbes()
+        nameList = []
+        append = False
+        for probe in self.probes:
+            if nameInclude in probe.name and nameExclude not in probe.name:
+                probe.fileName = f"{directory}{nameInclude}.txt"
+                probe.writeProbes(append = append)
+                nameList.append(probe.name)
+                append = True
+        if len(nameList) == 0:
+            return
+        with open(f"{directory}nameKey_{nameInclude}.txt",'w+') as out:
+            for name in nameList:
+                out.write(f'{name}\n')
+        return
+
+    def writeProbesToFiles(self, directory, nameInclude = "", nameExclude = "100gecs"):
         self.removeZeroProbes()
         for probe in self.probes:
             if nameInclude in probe.name and nameExclude not in probe.name:
                 probe.fileName = f"{directory}{probe.name}.txt"
                 probe.writeProbes()
+        return
+                    
+
 
 
 def sumProbedGeom(items: "list"):
@@ -217,7 +242,7 @@ def makeDoors(rooms_params, w, h, nprobes_w, nprobes_h):
 
     return sumProbedGeom(doors_list)
 
-def makeWindows(rooms_params, w, h, nprobes_w, nprobes_h, extraProbeTiles = []):
+def makeWindows(rooms_params, w, h, nprobes_w, nprobes_h, extraProbeOffset = 0):
     x = rooms_params['x']
     y = rooms_params['y']
     z = rooms_params['z']
@@ -232,13 +257,18 @@ def makeWindows(rooms_params, w, h, nprobes_w, nprobes_h, extraProbeTiles = []):
             disp = (x*(i+(i!=0)) + edge_shift, y/2, z*(k+.5))
             size = (wthick*1.1, h, w)
             nprobes = (1, nprobes_h, nprobes_w)
-            window = makeProbedCube(size, nprobes, f"xwindow_{i}-{k}", True)
+            name = f"xwindow_{i}-{k}"
+            extraProbeTile = np.array([[extraProbeOffset, 0, 0]])
         elif orientation == 'z':
             edge_shift = wthick * (0.5 - (k!=0))
             disp = (x*(i+.5), y/2, z*(k+(k!=0)) + edge_shift)
             size = (w, h, wthick*1.1)
             nprobes = (nprobes_w, nprobes_h, 1)
-            window = makeProbedCube(size, nprobes, f"zwindow_{i}-{k}", True)
+            name = f"zwindow_{i}-{k}"
+            extraProbeTile = np.array([[0, 0, extraProbeOffset]])
+        window = makeProbedCube(size, nprobes, name, True)
+        if extraProbeOffset != 0:
+            window.probes += [probeSetup.Probes(tile = extraProbeTile, name = f"extraProbe_{name}", type = "PROBE")]
         window.translate(disp)
         windows_list.append(window)
 

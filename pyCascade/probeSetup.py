@@ -2,6 +2,7 @@
 # coordinates of the probes
 
 import numpy as np
+import os
 
 class Probes:
     def __init__(self, tile = None, name = None, fileName = None, type = None):
@@ -11,16 +12,20 @@ class Probes:
         self.type = type
         self.probeCall = None
 
-    def writeProbes(self):
-    
-        nPoints, temp = np.shape(self.tile)
-    
-        with open(self.fileName,'w+') as out:
-            out.write(str(nPoints))
-            out.write(' points\n')
+    def writeProbes(self, append = False):
+        if append:
+            writeStyle = "a+"
+        else:
+            writeStyle = "w+"
+        with open(self.fileName, writeStyle) as out:
+            nPoints, _ = np.shape(self.tile)
+            if os.path.exists(self.fileName) == False or writeStyle == "w+":
+                out.write(str(nPoints))
+                out.write(' points\n')
+            else:
+                print(f"Appending to file {self.fileName}")
             for i in range(nPoints):
                 out.write('    ' + '{:06.6f}'.format(self.tile[i,0]) + '    ' + '{:06.6f}'.format(self.tile[i,1]) + '    ' + '{:06.6f}'.format(self.tile[i,2]) + '\n')
-
         return
 
     def y_col(self, x, z, y_range, n_probes):
