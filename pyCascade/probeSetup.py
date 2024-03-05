@@ -49,12 +49,15 @@ class Probes:
         tile[:,2] = np.repeat(z_range, n_x*n_y)
         self.tile = tile
 
-    def getProbeCall(self, minVolThick = 0, vars = ""):
+    def getProbeCall(self, minVolThick = 0, vars = "", name = None):
+
+        if name == None:
+            name = self.name
     
-        probeCall = f"{self.type} NAME=$(probe_path)/{self.name:22} INTERVAL $(probe_int) "
+        probeCall = f"{self.type} NAME=$(probe_path)/{name:22} INTERVAL $(probe_int) "
 
         if self.type == "PROBE":
-            probeCall += f"GEOM FILE $(location_path)/{self.name + '.txt' :26}" 
+            probeCall += f"GEOM FILE $(location_path)/{name + '.txt' :26}" 
             probeCall += f"VARS {vars}"
         
         elif self.type == "VOLUMETRIC_PROBE":

@@ -206,16 +206,19 @@ def identify_openings(rooms_params):
     return rooms_params
 
 
-def makeRoof(l1, l2, w1, w2, h1, h2):
+def makeRoof(l1, l2, w1, w2, h1, h2, extraProbeOffset = 0):
     """
     prismoid roof with pointing towards y
     """
-    
     geom = prismoid([l1,w1], [l2,w2], h=h1)
     geom = xrot(-90)(geom)
     geom = translate([l1/2,h2,w1/2])(geom)
+    roof = ProbedGeom(geom)
+    extraProbeTile = np.array([[l1/2, h1 + extraProbeOffset, w1/2]], dtype = float)
+    if extraProbeOffset != 0:
+        roof.probes = [probeSetup.Probes(tile = extraProbeTile, name = f"extraProbe_roof", type = "PROBE")]
 
-    return ProbedGeom(geom)
+    return roof
 
 def makeDoors(rooms_params, w, h, nprobes_w, nprobes_h):
     x = rooms_params['x']
