@@ -10,6 +10,7 @@ from dask import dataframe as dd
 import scipy as sp
 import os
 from IPython.core.debugger import set_trace
+from fnmatch import fnmatch
 
 
 def ddf_to_MIseries(ddf):
@@ -118,7 +119,7 @@ def mul_names(data_dict, names, mul, t_data=None):
             data_dict[k] = mul*v
     return data_dict
 
-def addWindowDetails(flowStats, locations = None, areas = None):
+def addWindowDetails(flowStats, locations = None, areas = None, extraProbe = None):
     windowType = []
     openingType = []
     houseType = []
@@ -128,7 +129,7 @@ def addWindowDetails(flowStats, locations = None, areas = None):
         windowData = window.replace("_h_", '_')
         windowData = windowData.split('_')
         if len(windowData) == 3:
-            windowData.append('')
+            windowData.append(np.nan)
         windowType.append(f"{windowData[0]}_{windowData[1]}")
         openingType.append(windowData[0])
         windowNumber.append(windowData[1])
@@ -140,6 +141,7 @@ def addWindowDetails(flowStats, locations = None, areas = None):
     flowStats["windowNumber"] = windowNumber
     flowStats["houseType"] = houseType
     flowStats["blockType"] = blockType
+    flowStats["blockType"].fillna("B", inplace = True)
 
     retrievedIndex = flowStats.index
     if areas is not None:
@@ -147,6 +149,71 @@ def addWindowDetails(flowStats, locations = None, areas = None):
     if locations is not None:
         flowStats = pd.concat([flowStats, locations], axis = "columns")
     flowStats = flowStats.loc[retrievedIndex]
+
+    flowStats["orientation"] = pd.Series(dtype=float)
+
+    flowStats.loc[(
+            (flowStats.openingType == "xwindow") & (
+            (flowStats.windowNumber.apply(lambda str: fnmatch(str, '[!0]-?'))) & (flowStats.blockType == "B") | 
+            (flowStats.windowNumber.apply(lambda str: fnmatch(str, '0-?'))) & (flowStats.blockType == "Bxz"))
+        ) | (
+            (flowStats.openingType == "zwindow") & (
+            (flowStats.windowNumber.apply(lambda str: fnmatch(str, '?-0'))) & (flowStats.blockType == "Bx") | 
+            (flowStats.windowNumber.apply(lambda str: fnmatch(str, '?-[!0]'))) & (flowStats.blockType == "Bz"))
+        ), "orientation"] = 0
+
+    flowStats.loc[(
+            (flowStats.openingType == "xwindow") & (
+            (flowStats.windowNumber.apply(lambda str: fnmatch(str, '0-?'))) & (flowStats.blockType == "B") | 
+            (flowStats.windowNumber.apply(lambda str: fnmatch(str, '[!0]-?'))) & (flowStats.blockType == "Bxz"))
+        ) | (
+            (flowStats.openingType == "zwindow") & (
+            (flowStats.windowNumber.apply(lambda str: fnmatch(str, '?-[!0]'))) & (flowStats.blockType == "Bx") | 
+            (flowStats.windowNumber.apply(lambda str: fnmatch(str, '?-0'))) & (flowStats.blockType == "Bz"))
+        ), "orientation"] = 180
+
+    flowStats.loc[(
+            (flowStats.openingType == "xwindow") & (
+            (flowStats.windowNumber.apply(lambda str: fnmatch(str, '[!0]-?'))) & (flowStats.blockType == "Bx") | 
+            (flowStats.windowNumber.apply(lambda str: fnmatch(str, '0-?'))) & (flowStats.blockType == "Bz"))
+        ) | (                                                                             
+            (flowStats.openingType == "zwindow") & (                                    
+            (flowStats.windowNumber.apply(lambda str: fnmatch(str, '?-0'))) & (flowStats.blockType == "Bxz") |
+            (flowStats.windowNumber.apply(lambda str: fnmatch(str, '?-[!0]')))& (flowStats.blockType == "B"))
+        ), "orientation"] = 90
+
+    flowStats.loc[(
+            (flowStats.openingType == "xwindow") & (
+            (flowStats.windowNumber.apply(lambda str: fnmatch(str, '0-?'))) & (flowStats.blockType == "Bx") | 
+            (flowStats.windowNumber.apply(lambda str: fnmatch(str, '[!0]-?'))) & (flowStats.blockType == "Bz"))
+        ) | (
+            (flowStats.openingType == "zwindow") & (
+            (flowStats.windowNumber.apply(lambda str: fnmatch(str, '?-[!0]'))) & (flowStats.blockType == "Bxz") | 
+            (flowStats.windowNumber.apply(lambda str: fnmatch(str, '?-0'))) & (flowStats.blockType == "B"))
+        ), "orientation"] = 270
+    
+    EP_mag = []
+    EP_vel_orientation = []
+    if extraProbe is not None:
+        flowStats = pd.concat([flowStats.sort_index(), extraProbe.sort_index()], axis = "columns")
+        for window, row in flowStats.iterrows():
+            if np.isnan(row["x"]) == False and np.isnan(row["EP_x"]) == False:
+                EP_vector = row[["x", "y", "z"]].values - row[["EP_x", "EP_y", "EP_z"]].values
+                EP_vector = EP_vector / np.linalg.norm(EP_vector)
+                # EP_vector
+                EP_velocity = row[["EP_comp(u_avg,0)", "EP_comp(u_avg,1)", "EP_comp(u_avg,2)"]].values
+                EP_magnitude = np.linalg.norm(EP_velocity)
+                EP_mag.append(EP_magnitude)
+                EP_vel_orientation.append(np.arccos(np.dot(EP_vector, EP_velocity/EP_magnitude))*180/np.pi)
+            else:
+                EP_mag.append(np.nan)
+                EP_vel_orientation.append(np.nan)
+        flowStats["EP_mag"] = EP_mag
+        flowStats["EP_vel_orientation"] = EP_vel_orientation
+
+            
+
+
     return flowStats
 
 
