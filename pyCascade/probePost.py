@@ -194,6 +194,8 @@ def addWindowDetails(flowStats, locations = None, areas = None, extraProbe = Non
     
     EP_mag = []
     EP_vel_orientation = []
+    EPR_mag = []
+    EPR_vel_orientation = []
     if extraProbe is not None:
         flowStats = pd.concat([flowStats.sort_index(), extraProbe.sort_index()], axis = "columns")
         for window, row in flowStats.iterrows():
@@ -208,11 +210,23 @@ def addWindowDetails(flowStats, locations = None, areas = None, extraProbe = Non
             else:
                 EP_mag.append(np.nan)
                 EP_vel_orientation.append(np.nan)
+            EPRoof = f"roof_h_{row['houseType']}_{row['blockType']}".removesuffix("_B")
+            if "sl" in EPRoof:
+                EPRoof = EPRoof.replace("_h_", "_")
+            if EPRoof in flowStats.index:
+                EPR_velocity = flowStats.loc[EPRoof, ["EP_comp(u_avg,0)", "EP_comp(u_avg,1)", "EP_comp(u_avg,2)"]].values
+                EPR_magnitude = np.linalg.norm(EPR_velocity)
+                EPR_mag.append(EPR_magnitude)
+                EPR_vel_orientation.append(np.arccos(np.dot([1, 0, 0], EPR_velocity/EPR_magnitude))*180/np.pi)
+            else:
+                EPR_mag.append(np.nan)
+                EPR_vel_orientation.append(np.nan)
+        
         flowStats["EP_mag"] = EP_mag
         flowStats["EP_vel_orientation"] = EP_vel_orientation
-
-            
-
+        flowStats["EPR_mag"] = EPR_mag
+        flowStats["EPR_vel_orientation"] = EPR_vel_orientation
+        flowStats.dropna(subset = "x", inplace = True)
 
     return flowStats
 
