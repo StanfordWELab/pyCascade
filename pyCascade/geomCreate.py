@@ -214,7 +214,7 @@ def makeRoof(l1, l2, w1, w2, h1, h2, extraProbeOffset = 0):
     geom = xrot(-90)(geom)
     geom = translate([l1/2,h2,w1/2])(geom)
     roof = ProbedGeom(geom)
-    extraProbeTile = np.array([[l1/2, h1 + extraProbeOffset, w1/2]], dtype = float)
+    extraProbeTile = np.array([[l1/2, h1 + h2 + extraProbeOffset, w1/2]], dtype = float)
     if extraProbeOffset != 0:
         roof.probes = [probeSetup.Probes(tile = extraProbeTile, name = f"extraProbe_roof", type = "PROBE")]
 
