@@ -302,7 +302,7 @@ def openWalls(rooms_params, w, h, nprobes_w, nprobes_h):
 
     return sumProbedGeom(walls_list)
 
-def makeSkylights(rooms_params, w, h, t, nprobes_w, nprobes_h):
+def makeSkylights(rooms_params, w, h, t, nprobes_w, nprobes_h, extraProbeOffset = 0):
     x = rooms_params['x']
     y = rooms_params['y']
     z = rooms_params['z']
@@ -316,8 +316,12 @@ def makeSkylights(rooms_params, w, h, t, nprobes_w, nprobes_h):
         disp = (x*(i+.5), y + edge_shift, z*(k+.5))
         size = (w, wthick, h)
         nprobes = (nprobes_w, 1, nprobes_h)
-        skylight = makeProbedCube(size, nprobes, f"skylight_{i}-{k}", True)
+        name = f"skylight_{i}-{k}"
+        skylight = makeProbedCube(size, nprobes, name, True)
         skylight += ProbedGeom(cube((w, t, h), True))
+        extraProbeTile = np.array([[0, extraProbeOffset, 0]])
+        if extraProbeOffset != 0:
+            skylight.probes += [probeSetup.Probes(tile = extraProbeTile, name = f"extraProbe_{name}", type = "PROBE")]
         skylight.translate(disp)
         skylights_list.append(skylight)
 
