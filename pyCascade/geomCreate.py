@@ -261,14 +261,14 @@ def makeWindows(rooms_params, w, h, nprobes_w, nprobes_h, extraProbeOffset = 0):
             size = (wthick*1.1, h, w)
             nprobes = (1, nprobes_h, nprobes_w)
             name = f"xwindow_{i}-{k}"
-            extraProbeTile = np.array([[extraProbeOffset, 0, 0]])
+            extraProbeTile = np.array([[extraProbeOffset * (1 - 2*(i==0)), 0, 0]])
         elif orientation == 'z':
             edge_shift = wthick * (0.5 - (k!=0))
             disp = (x*(i+.5), y/2, z*(k+(k!=0)) + edge_shift)
             size = (w, h, wthick*1.1)
             nprobes = (nprobes_w, nprobes_h, 1)
             name = f"zwindow_{i}-{k}"
-            extraProbeTile = np.array([[0, 0, extraProbeOffset]])
+            extraProbeTile = np.array([[0, 0, extraProbeOffset * (1 - 2*(k==0))]])
         window = makeProbedCube(size, nprobes, name, True)
         if extraProbeOffset != 0:
             window.probes += [probeSetup.Probes(tile = extraProbeTile, name = f"extraProbe_{name}", type = "PROBE")]
