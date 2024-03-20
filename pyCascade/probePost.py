@@ -251,9 +251,6 @@ def roomStatistics(windowStats, windowMap, roomQois):
     houses = set(windowStats["houseType"])
     blocks = set(windowStats["blockType"])
     dims = ['x', 'y', 'z']
-    roomQois.append("nWindows")
-    if "mean" in roomQois:
-        roomQois.append("contResid")
 
     roomVentilation = {}
     roomLocs = {}
@@ -272,24 +269,14 @@ def roomStatistics(windowStats, windowMap, roomQois):
         if roomKey not in roomVentilation:
             roomVentilation[roomKey] = {} #create room
             for qoi in roomQois:
-                if "EP" in qoi:
-                    roomVentilation[roomKey][qoi] = [] #initlialize list for extra probes
-                else:
-                    roomVentilation[roomKey][qoi] = 0 #initlialize quantities as 0
+                roomVentilation[roomKey][qoi] = [] #initlialize list for extra probes
         if roomKey not in roomLocs:
             roomLocs[roomKey] = {} #create location coordinateds
             for d in dims:
-                roomLocs[roomKey][d] = [] #initialize to 0
+                roomLocs[roomKey][d] = [] #initialize list
         for qoi in roomQois:
-            if qoi == "contResid":
-                addValue = windowStats.loc[windowKey, "mean"] # just sum continuity residual
-            elif qoi == "nWindows":
-                addValue = 1
-            elif "EP" in qoi:
-                addValue = [windowStats.loc[windowKey, qoi]]
-            else:
-                addValue = np.abs(windowStats.loc[windowKey, qoi]) / 2 # in general, assumed that qois like mean/net are double counted across windows
-            roomVentilation[roomKey][qoi] += addValue
+            addValue = windowStats.loc[windowKey, qoi] # in general, assumed that qois like mean/net are double counted across windows
+            roomVentilation[roomKey][qoi].append(addValue)
         for d in dims:
             roomLocs[roomKey][d].append(windowStats.loc[windowKey, d])
 
