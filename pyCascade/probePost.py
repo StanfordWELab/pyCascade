@@ -210,6 +210,7 @@ def addWindowDetails(flowStats, locations = None, areas = None, extraProbe = Non
                 EP_mag.append(EP_magnitude)
                 EP_normal.append(np.dot(EP_vector, EP_velocity))
                 EP_vel_orientation.append(np.arccos(EP_normal[-1]/EP_magnitude)*180/np.pi)
+                EP_normal[-1] *= -1 # adjusting for positive being into the room
                 EP_shear.append(np.sqrt(EP_magnitude**2 - EP_normal[-1]**2))
             else:
                 EP_mag.append(np.nan)
