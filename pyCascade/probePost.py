@@ -194,6 +194,8 @@ def addWindowDetails(flowStats, locations = None, areas = None, extraProbe = Non
     
     EP_mag = []
     EP_vel_orientation = []
+    EP_normal = []
+    EP_shear = []
     EPR_mag = []
     EPR_vel_orientation = []
     if extraProbe is not None:
@@ -206,10 +208,14 @@ def addWindowDetails(flowStats, locations = None, areas = None, extraProbe = Non
                 EP_velocity = row[["EP_comp(u_avg,0)", "EP_comp(u_avg,1)", "EP_comp(u_avg,2)"]].values
                 EP_magnitude = np.linalg.norm(EP_velocity)
                 EP_mag.append(EP_magnitude)
-                EP_vel_orientation.append(np.arccos(np.dot(EP_vector, EP_velocity/EP_magnitude))*180/np.pi)
+                EP_normal.append(np.dot(EP_vector, EP_velocity))
+                EP_vel_orientation.append(np.arccos(EP_normal[-1]/EP_magnitude)*180/np.pi)
+                EP_shear.append(np.sqrt(EP_magnitude**2 - EP_normal[-1]**2))
             else:
                 EP_mag.append(np.nan)
                 EP_vel_orientation.append(np.nan)
+                EP_normal.append(np.nan)
+                EP_shear.append(np.nan)
             EPRoof = f"roof_h_{row['houseType']}_{row['blockType']}".removesuffix("_B")
             if "sl" in EPRoof:
                 EPRoof = EPRoof.replace("_h_", "_")
@@ -224,6 +230,8 @@ def addWindowDetails(flowStats, locations = None, areas = None, extraProbe = Non
         
         flowStats["EP_mag"] = EP_mag
         flowStats["EP_vel_orientation"] = EP_vel_orientation
+        flowStats["EP_normal"] = EP_normal
+        flowStats["EP_shear"] = EP_shear
         flowStats["EPR_mag"] = EPR_mag
         flowStats["EPR_vel_orientation"] = EPR_vel_orientation
         flowStats.dropna(subset = "x", inplace = True)
@@ -243,6 +251,7 @@ def roomStatistics(windowStats, windowMap, roomQois):
     houses = set(windowStats["houseType"])
     blocks = set(windowStats["blockType"])
     dims = ['x', 'y', 'z']
+    roomQois.append("nWindows")
     if "mean" in roomQois:
         roomQois.append("contResid")
 
@@ -261,18 +270,25 @@ def roomStatistics(windowStats, windowMap, roomQois):
 
         roomKey = genKey(room, row["houseType"], row["blockType"])
         if roomKey not in roomVentilation:
-            roomVentilation[roomKey] = {}
+            roomVentilation[roomKey] = {} #create room
             for qoi in roomQois:
-                roomVentilation[roomKey][qoi] = 0
+                if "EP" in qoi:
+                    roomVentilation[roomKey][qoi] = [] #initlialize list for extra probes
+                else:
+                    roomVentilation[roomKey][qoi] = 0 #initlialize quantities as 0
         if roomKey not in roomLocs:
-            roomLocs[roomKey] = {}
+            roomLocs[roomKey] = {} #create location coordinateds
             for d in dims:
-                roomLocs[roomKey][d] = []
+                roomLocs[roomKey][d] = [] #initialize to 0
         for qoi in roomQois:
             if qoi == "contResid":
-                addValue = windowStats.loc[windowKey, "mean"]
+                addValue = windowStats.loc[windowKey, "mean"] # just sum continuity residual
+            elif qoi == "nWindows":
+                addValue = 1
+            elif "EP" in qoi:
+                addValue = [windowStats.loc[windowKey, qoi]]
             else:
-                addValue = np.abs(windowStats.loc[windowKey, qoi]) / 2
+                addValue = np.abs(windowStats.loc[windowKey, qoi]) / 2 # in general, assumed that qois like mean/net are double counted across windows
             roomVentilation[roomKey][qoi] += addValue
         for d in dims:
             roomLocs[roomKey][d].append(windowStats.loc[windowKey, d])
@@ -282,7 +298,7 @@ def roomStatistics(windowStats, windowMap, roomQois):
         roomList.append(room)
 
     windowStats["roomType"] = roomList # modifying in place, should modify outside function i.e. PBR
-    roomVentilation = pd.DataFrame(roomVentilation).T  
+    roomVentilation = pd.DataFrame(roomVentilation).T
     roomLocs = pd.DataFrame(roomLocs).T
     roomLocs = roomLocs.map(lambda L: np.mean(L))
 
