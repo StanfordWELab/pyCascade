@@ -202,7 +202,7 @@ def addWindowDetails(flowStats, locations = None, areas = None, extraProbe = Non
         flowStats = pd.concat([flowStats.sort_index(), extraProbe.sort_index()], axis = "columns")
         for window, row in flowStats.iterrows():
             if np.isnan(row["x"]) == False and np.isnan(row["EP_x"]) == False:
-                EP_vector = row[["x", "y", "z"]].values - row[["EP_x", "EP_y", "EP_z"]].values
+                EP_vector = row[["EP_x", "EP_y", "EP_z"]].values - row[["x", "y", "z"]].values
                 EP_vector = EP_vector / np.linalg.norm(EP_vector)
                 # EP_vector
                 EP_velocity = row[["EP_comp(u_avg,0)", "EP_comp(u_avg,1)", "EP_comp(u_avg,2)"]].values
