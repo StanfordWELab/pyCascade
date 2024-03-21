@@ -10,6 +10,23 @@ def loglaw_with_disp(z, uStar, z0, disp):
     log_wind = (uStar/vK_const)*np.log(z_scaled)
     return log_wind
 
+def getVentRi(delT, V, H = 3):
+    g = 10
+    Tref = 288.15
+    return g * delT / Tref * H / V**2
+
+def velocityFromVentRi(Ri, delT, H = 3):
+    g = 10
+    Tref = 288.15
+    return np.sqrt(g * delT / Tref * H / Ri)
+
+def delTFromVentRi(Ri, V, H = 3):
+    g = 10
+    Tref = 288.15
+    return Ri / (g / Tref * H / V**2)
+
+
+
 
 class LES_Physics(utils.Helper):
     def __init__(self, LES_params = {}):
