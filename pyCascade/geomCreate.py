@@ -150,7 +150,7 @@ def makeProbedCube(size, nprobes, name, centered = False, spacing = "flux"):
     return ProbedGeom(geom, [probes])
 
 
-def makeRooms(x, y, z, wthick = .01, nx=1, ny=1, nz=1):
+def makeRooms(x, y, z, wthick = .01, nx=1, ny=1, nz=1, volumeProibes = False):
     offset = wthick
     x_empty = x - 2 * wthick
     y_empty= y - 2 * wthick
@@ -162,8 +162,9 @@ def makeRooms(x, y, z, wthick = .01, nx=1, ny=1, nz=1):
         for j in range(ny):
             for k in range(nz):
                 disp = (x*i + offset, y*j + offset, z*k + offset)
-                rooms_list.append(translate(disp)(cube(size, False)))
-    rooms = np.sum(rooms_list)
+                room = ProbedGeom(cube(size, center = False))
+                room.translate(disp)
+                rooms_list.append(room)
 
     rooms_params = {
         'x': x,
@@ -175,7 +176,7 @@ def makeRooms(x, y, z, wthick = .01, nx=1, ny=1, nz=1):
         'nz': nz
     }
 
-    return ProbedGeom(rooms), rooms_params
+    return sumProbedGeom(rooms_list), rooms_params
 
 
 def identify_openings(rooms_params):
