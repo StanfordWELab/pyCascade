@@ -17,7 +17,7 @@ class ProbedGeom:
         """
         This makes u = a + b also aggegate the associated probes
         """
-        return ProbedGeom(self.geom + x.geom, self.probes + x.probes)
+        return deepcopy(ProbedGeom(self.geom + x.geom, self.probes + x.probes))
 
     # def __radd__(self, x: "ProbedGeom"):
     #     """
@@ -29,13 +29,13 @@ class ProbedGeom:
         """
         This makes u = a - b also aggegate the associated probes
         """
-        return ProbedGeom(self.geom-x.geom, self.probes + x.probes)
+        return deepcopy(ProbedGeom(self.geom-x.geom, self.probes + x.probes))
 
     def __mul__(self, x: "ProbedGeom"):
         """
         This makes u = a * b also aggegate the associated probes
         """
-        return ProbedGeom(self.geom*x.geom, self.probes + x.probes)
+        return deepcopy(ProbedGeom(self.geom*x.geom, self.probes + x.probes))
 
     def translate(self, v):
         """
@@ -73,7 +73,7 @@ class ProbedGeom:
         removes probes with 0 points
         """
         self.probes = [probe for probe in self.probes if probe.tile.shape[0] != 0]
-
+    
     def writeProbesToSingleFile(self, directory, nameInclude = "", nameExclude = "100gecs"):
         self.removeZeroProbes()
         nameList = []
@@ -156,26 +156,23 @@ def makeRooms(x, y, z, wthick = .01, nx=1, ny=1, nz=1, nVolumeProbes = None):
     x_empty = x - 2 * wthick
     y_empty= y - 2 * wthick
     z_empty = z - 2 * wthick
-    if nVolumeProbes is None:
-        size = (x_empty, y_empty, z_empty)
-    else:
-        size = (x_empty, y_empty / nVolumeProbes, z_empty)
+    size = (x_empty, y_empty, z_empty)
 
     rooms_list = []
     for i in range(nx):
         for j in range(ny):
             for k in range(nz):
                 disp = [x*i + offset, y*j + offset, z*k + offset]
-                if nVolumeProbes is None:
-                    room = ProbedGeom(cube(size, center = False))
-                    room.translate(disp)
-                    rooms_list.append(room)
-                else:
+                room = ProbedGeom(cube(size, center = False))
+                if nVolumeProbes is not None:
+                    sizeProbes = (x_empty, y_empty / nVolumeProbes, z_empty)
                     for c in range(nVolumeProbes):
-                        room = makeProbedCube(size, (1, 1, 1), f"room{c}_{i}-{k}", centered = False, spacing = "volumetric")
-                        room.translate(deepcopy(disp))
-                        rooms_list.append(room)
-                        disp[1] += size[1]
+                        roomProbes = makeProbedCube(sizeProbes, (1, 1, 1), f"room{c}_{i}-{k}", centered = False, spacing = "volumetric")
+                        roomProbes.translate((0, sizeProbes[1] * c, 0))
+                        room += roomProbes
+                room.geom = cube(size, center = False) #resetting the geometry to the original for simplicity
+                room.translate(disp)
+                rooms_list.append(room)
 
     rooms_params = {
         'x': x,
