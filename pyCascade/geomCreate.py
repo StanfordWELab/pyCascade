@@ -3,6 +3,7 @@ from solid2.extensions.bosl2 import prismoid, xrot, translate
 import numpy as np
 from pyCascade import probeSetup
 from scipy.spatial.transform import Rotation as R
+from copy import deepcopy
 # from numpy.polynomial import chebyshev as cheb
 # from chaospy.quadrature import clenshaw_curtis
 
@@ -150,21 +151,31 @@ def makeProbedCube(size, nprobes, name, centered = False, spacing = "flux"):
     return ProbedGeom(geom, [probes])
 
 
-def makeRooms(x, y, z, wthick = .01, nx=1, ny=1, nz=1, volumeProibes = False):
+def makeRooms(x, y, z, wthick = .01, nx=1, ny=1, nz=1, nVolumeProbes = None):
     offset = wthick
     x_empty = x - 2 * wthick
     y_empty= y - 2 * wthick
     z_empty = z - 2 * wthick
-    size = (x_empty, y_empty, z_empty)
+    if nVolumeProbes is None:
+        size = (x_empty, y_empty, z_empty)
+    else:
+        size = (x_empty, y_empty / nVolumeProbes, z_empty)
 
     rooms_list = []
     for i in range(nx):
         for j in range(ny):
             for k in range(nz):
-                disp = (x*i + offset, y*j + offset, z*k + offset)
-                room = ProbedGeom(cube(size, center = False))
-                room.translate(disp)
-                rooms_list.append(room)
+                disp = [x*i + offset, y*j + offset, z*k + offset]
+                if nVolumeProbes is None:
+                    room = ProbedGeom(cube(size, center = False))
+                    room.translate(disp)
+                    rooms_list.append(room)
+                else:
+                    for c in range(nVolumeProbes):
+                        room = makeProbedCube(size, (1, 1, 1), f"room{c}_{i}-{k}", centered = False, spacing = "volumetric")
+                        room.translate(deepcopy(disp))
+                        rooms_list.append(room)
+                        disp[1] += size[1]
 
     rooms_params = {
         'x': x,
