@@ -3,6 +3,7 @@ from solid2.extensions.bosl2 import prismoid, xrot, translate
 import numpy as np
 from pyCascade import probeSetup
 from scipy.spatial.transform import Rotation as R
+from copy import deepcopy
 # from numpy.polynomial import chebyshev as cheb
 # from chaospy.quadrature import clenshaw_curtis
 
@@ -16,7 +17,7 @@ class ProbedGeom:
         """
         This makes u = a + b also aggegate the associated probes
         """
-        return ProbedGeom(self.geom + x.geom, self.probes + x.probes)
+        return deepcopy(ProbedGeom(self.geom + x.geom, self.probes + x.probes))
 
     # def __radd__(self, x: "ProbedGeom"):
     #     """
@@ -28,13 +29,13 @@ class ProbedGeom:
         """
         This makes u = a - b also aggegate the associated probes
         """
-        return ProbedGeom(self.geom-x.geom, self.probes + x.probes)
+        return deepcopy(ProbedGeom(self.geom-x.geom, self.probes + x.probes))
 
     def __mul__(self, x: "ProbedGeom"):
         """
         This makes u = a * b also aggegate the associated probes
         """
-        return ProbedGeom(self.geom*x.geom, self.probes + x.probes)
+        return deepcopy(ProbedGeom(self.geom*x.geom, self.probes + x.probes))
 
     def translate(self, v):
         """
@@ -72,7 +73,7 @@ class ProbedGeom:
         removes probes with 0 points
         """
         self.probes = [probe for probe in self.probes if probe.tile.shape[0] != 0]
-
+    
     def writeProbesToSingleFile(self, directory, nameInclude = "", nameExclude = "100gecs"):
         self.removeZeroProbes()
         nameList = []
@@ -143,14 +144,14 @@ def makeProbedCube(size, nprobes, name, centered = False, spacing = "flux"):
         else:
             raise Exception(f"spacing {spacing} not recognized")
         if centered == False:
-            points += dim/2
+            points = points + dim/2
         probe_span.append(points)
     probes = probeSetup.Probes(name = name, type = probeType)
     probes.probe_fill(*probe_span)
     return ProbedGeom(geom, [probes])
 
 
-def makeRooms(x, y, z, wthick = .01, nx=1, ny=1, nz=1):
+def makeRooms(x, y, z, wthick = .01, nx=1, ny=1, nz=1, nVolumeProbes = None, fluxProbeOffset = None):
     offset = wthick
     x_empty = x - 2 * wthick
     y_empty= y - 2 * wthick
@@ -161,9 +162,25 @@ def makeRooms(x, y, z, wthick = .01, nx=1, ny=1, nz=1):
     for i in range(nx):
         for j in range(ny):
             for k in range(nz):
-                disp = (x*i + offset, y*j + offset, z*k + offset)
-                rooms_list.append(translate(disp)(cube(size, False)))
-    rooms = np.sum(rooms_list)
+                disp = [x*i + offset, y*j + offset, z*k + offset]
+                room = ProbedGeom(cube(size, center = False))
+                if nVolumeProbes is not None:
+                    sizeProbes = (x_empty, y_empty / nVolumeProbes, z_empty)
+                    for c in range(nVolumeProbes):
+                        roomProbe = makeProbedCube(sizeProbes, (1, 1, 1), f"room{c}_{i}-{k}", centered = False, spacing = "volumetric")
+                        roomProbe.translate((0, sizeProbes[1] * c, 0))
+                        room += roomProbe
+                if fluxProbeOffset is not None:
+                    sizeProbes = (x_empty, 2 * fluxProbeOffset, z_empty)
+                    ceilProbe = makeProbedCube(sizeProbes, (2, 1, 2), f"roomCeil_{i}-{k}", centered = False, spacing = "flux")
+                    floorProbe = makeProbedCube(sizeProbes, (2, 1, 2), f"roomFloor_{i}-{k}", centered = False, spacing = "flux")
+                    ceilProbe.translate((0, y_empty - 2 * fluxProbeOffset, 0))
+                    floorProbe.translate((0, 0, 0))
+                    room += ceilProbe
+                    room += floorProbe
+                room.geom = cube(size, center = False) #resetting the geometry to the original for simplicity
+                room.translate(disp)
+                rooms_list.append(room)
 
     rooms_params = {
         'x': x,
@@ -175,7 +192,7 @@ def makeRooms(x, y, z, wthick = .01, nx=1, ny=1, nz=1):
         'nz': nz
     }
 
-    return ProbedGeom(rooms), rooms_params
+    return sumProbedGeom(rooms_list), rooms_params
 
 
 def identify_openings(rooms_params):
