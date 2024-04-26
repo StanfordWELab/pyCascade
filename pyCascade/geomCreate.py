@@ -144,14 +144,14 @@ def makeProbedCube(size, nprobes, name, centered = False, spacing = "flux"):
         else:
             raise Exception(f"spacing {spacing} not recognized")
         if centered == False:
-            points += dim/2
+            points = points + dim/2
         probe_span.append(points)
     probes = probeSetup.Probes(name = name, type = probeType)
     probes.probe_fill(*probe_span)
     return ProbedGeom(geom, [probes])
 
 
-def makeRooms(x, y, z, wthick = .01, nx=1, ny=1, nz=1, nVolumeProbes = None):
+def makeRooms(x, y, z, wthick = .01, nx=1, ny=1, nz=1, nVolumeProbes = None, fluxProbeOffset = None):
     offset = wthick
     x_empty = x - 2 * wthick
     y_empty= y - 2 * wthick
@@ -167,9 +167,17 @@ def makeRooms(x, y, z, wthick = .01, nx=1, ny=1, nz=1, nVolumeProbes = None):
                 if nVolumeProbes is not None:
                     sizeProbes = (x_empty, y_empty / nVolumeProbes, z_empty)
                     for c in range(nVolumeProbes):
-                        roomProbes = makeProbedCube(sizeProbes, (1, 1, 1), f"room{c}_{i}-{k}", centered = False, spacing = "volumetric")
-                        roomProbes.translate((0, sizeProbes[1] * c, 0))
-                        room += roomProbes
+                        roomProbe = makeProbedCube(sizeProbes, (1, 1, 1), f"room{c}_{i}-{k}", centered = False, spacing = "volumetric")
+                        roomProbe.translate((0, sizeProbes[1] * c, 0))
+                        room += roomProbe
+                if fluxProbeOffset is not None:
+                    sizeProbes = (x_empty, 2 * fluxProbeOffset, z_empty)
+                    ceilProbe = makeProbedCube(sizeProbes, (2, 1, 2), f"roomCeil_{i}-{k}", centered = False, spacing = "flux")
+                    floorProbe = makeProbedCube(sizeProbes, (2, 1, 2), f"roomFloor_{i}-{k}", centered = False, spacing = "flux")
+                    ceilProbe.translate((0, y_empty - 2 * fluxProbeOffset, 0))
+                    floorProbe.translate((0, 0, 0))
+                    room += ceilProbe
+                    room += floorProbe
                 room.geom = cube(size, center = False) #resetting the geometry to the original for simplicity
                 room.translate(disp)
                 rooms_list.append(room)
