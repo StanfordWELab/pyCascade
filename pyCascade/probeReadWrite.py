@@ -49,6 +49,21 @@ def read_flux_probes(filename, file_type = 'csv', quants = None):
     ddf.index = step_index
     return ddf, step_index, time_index, location, area
 
+def read_vol_probes(filename, file_type = 'csv', quants = None):
+    ddf = read_probes_file_switch(filename, file_type)
+    step_index = ddf.iloc[:, 0] #grab the first column for the indixes
+    time_index = ddf.iloc[:, 1] #grab the second column for the times
+    ddf = ddf.iloc[:, 3::2] #take the data less other rows
+    if quants == None:
+        _, n_cols = ddf.shape
+        ddf = ddf.rename(columns=dict(zip(ddf.columns, np.arange(0, n_cols)))) #reset columns to integer 0 indexed
+    else:
+        ddf = ddf.rename(columns=dict(zip(ddf.columns, quants)))
+
+    ddf.columns.name = 'Flux Quants'
+    ddf.index = step_index
+    return ddf, step_index, time_index
+
 def read_locations(filename, file_type):
     if file_type == 'csv':
         locations = pd.read_csv(filename, delim_whitespace=True, comment = "#", header = None)
@@ -151,7 +166,11 @@ def readPointProbes(pathGenerator, file_type = 'csv', directory_parquet = None):
     return my_dict, probe_names, probe_steps, probe_quants, probe_stack, probe_times, locations, probe_paths
 
 
-def readFluxProbes(pathGenerator, file_type = 'csv', directory_parquet = None, quants = None):
+def readBulkProbes(pathGenerator, file_type = 'csv', directory_parquet = None, quants = None, probe_type = "FLUX_PROBES"):
+    if probe_type == "FLUX_PROBES":
+        probe_file_type = '.fp'
+    elif probe_type == "VOLUMETRIC_PROBES":
+        probe_file_type = '.svp'
     probe_names = []
     probe_quants = []
     probe_paths = []
@@ -164,7 +183,7 @@ def readFluxProbes(pathGenerator, file_type = 'csv', directory_parquet = None, q
     gotTimes = False
 
     for path in pathGenerator:
-        if ".fp" not in path:
+        if probe_file_type not in path:
             continue
         file_name = path.split('/')[-1]  # get the local file name
         probe_info = file_name.replace(".parquet", '')
@@ -172,7 +191,10 @@ def readFluxProbes(pathGenerator, file_type = 'csv', directory_parquet = None, q
         probe_name = probe_info[0]
         # store the pcd path and pcd reader function
             
-        ddf, step, time, locations[probe_name], areas[probe_name] = read_flux_probes(path, file_type, quants)
+        if probe_type == "FLUX_PROBES":
+            ddf, step, time, locations[probe_name], areas[probe_name] = read_flux_probes(path, file_type, quants)
+        elif probe_type == "VOLUMETRIC_PROBES":
+            ddf, step, time = read_vol_probes(path, file_type, quants)
             
         if gotTimes == False:
             probe_steps = step.compute().values

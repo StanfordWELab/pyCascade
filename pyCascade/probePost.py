@@ -328,13 +328,13 @@ class Probes(utils.Helper):
             self.data, probe_names, probe_steps, probe_quants, probe_stack, self.probe_paths = probeReadWrite.readPointCloudProbes(path_generator)
         elif self.probe_type == "PROBES":
             self.data, probe_names, probe_steps, probe_quants, probe_stack, probe_times, self.locations, self.probe_paths = probeReadWrite.readPointProbes(path_generator, self.file_type, self.directory_parquet)
-        elif self.probe_type == "FLUX_PROBES":
-            self.data, probe_names, probe_steps, probe_quants, probe_times, self.locations, self.areas, self.probe_paths = probeReadWrite.readFluxProbes(path_generator, self.file_type, self.directory_parquet, quants = flux_quants)
+        else:
+            self.data, probe_names, probe_steps, probe_quants, probe_times, self.locations, self.areas, self.probe_paths = probeReadWrite.readBulkProbes(path_generator, self.file_type, self.directory_parquet, quants = flux_quants, probe_type=probe_type)
             probe_stack = []
             
         self.steps_written = len(probe_steps)
         # remove steps and times that were written twice during run restarts
-        if self.probe_type == "PROBES" or self.probe_type == "FLUX_PROBES":
+        if self.probe_type in ["PROBES", "FLUX_PROBES", "VOLUMETRIC_PROBES"]:
             probe_steps, self.unique_steps_indexes = utils.last_unique(probe_steps)
             self.probe_times = probe_times.compute().iloc[self.unique_steps_indexes]
             self.probe_times.index = probe_steps
