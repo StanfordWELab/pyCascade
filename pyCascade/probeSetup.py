@@ -78,13 +78,18 @@ class Probes:
             maxs = self.tile[-1, :]
             means = np.mean(self.tile, axis = 0)
             normalVec = maxs - mins
+            normalVecAbs = np.abs(normalVec)
             probeCall += f"XP {means[0]:f} {means[1]:f} {means[2]:f} "
             probeCall += f"NP {normalVec[0]:f} {normalVec[1]:f} {normalVec[2]:f} VARS "
             for var in vars:
                 if "sn-" in var:
                     var = var.replace("sn-", "")
-                    var = var.replace("u", f"comp(u,{np.argmax(np.abs(normalVec))})")
-                    probeCall += f"sn_prod({var},{normalVec[0]:f},{normalVec[1]:f},{normalVec[2]:f}) "
+                    u_comp = f"comp(u,{np.argmax(normalVecAbs)})"
+                    var = var.replace("u", u_comp)
+                    if var == u_comp:
+                        probeCall += f"sn_prod({var},{normalVecAbs[0]:f},{normalVecAbs[1]:f},{normalVecAbs[2]:f}) " # use abs(NP) for directional quantities
+                    else:
+                        probeCall += f"sn_prod({var},{normalVec[0]:f},{normalVec[1]:f},{normalVec[2]:f}) " # effectively uses NP**2 to maintain scalar positive
                 else:
                     probeCall += f"mass_flux({var}) "
 
