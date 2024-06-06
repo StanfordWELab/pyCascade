@@ -81,8 +81,12 @@ class Probes:
             probeCall += f"XP {means[0]:f} {means[1]:f} {means[2]:f} "
             probeCall += f"NP {normalVec[0]:f} {normalVec[1]:f} {normalVec[2]:f} VARS "
             for var in vars:
-                probeCall += f"mass_flux({var}) "
-            probeCall += f"sn_prod(comp(u,{np.argmax(normalVec)}),{normalVec[0]:f},{normalVec[1]:f},{normalVec[2]:f}) "
+                if "sn-" in var:
+                    var = var.replace("sn-", "")
+                    var = var.replace("u", f"comp(u,{np.argmax(np.abs(normalVec))})")
+                    probeCall += f"sn_prod({var},{normalVec[0]:f},{normalVec[1]:f},{normalVec[2]:f}) "
+                else:
+                    probeCall += f"mass_flux({var}) "
 
         self.probeCall = probeCall
 
