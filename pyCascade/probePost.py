@@ -422,7 +422,8 @@ class Probes(utils.Helper):
                 unique_indexes = unique_indexes.tolist()
                 
                 df = df.iloc[unique_indexes]
-                df = df.loc[steps]
+                valid_steps = df.index.intersection(steps) # Handles differences created by stopping run during IO by ignoring some steps, should be a minor effect on result
+                df = df.loc[valid_steps]
             return df
     
         processed_data = utils.dict_apply(index_unique_steps)(processed_data)
