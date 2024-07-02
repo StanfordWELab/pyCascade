@@ -246,15 +246,11 @@ def genKey(type, house, block):
     return key.replace("h_sl", "sl")
 
 def roomStatistics(windowStats, windowMap, roomQois):
-    for key in ["houseType", "blockType", "windowType", "x", "y", "z"]:
+    for key in ["houseType", "blockType", "windowType"]:
         if key not in windowStats:
             raise Exception("missing requisit information. Try running 'probePost.addWindowDetails' before this function")
-    houses = set(windowStats["houseType"])
-    blocks = set(windowStats["blockType"])
-    dims = ['x', 'y', 'z']
 
     roomVentilation = {}
-    roomLocs = {}
     roomList = []
 
     for windowKey, row in windowStats.iterrows():
@@ -271,26 +267,18 @@ def roomStatistics(windowStats, windowMap, roomQois):
             roomVentilation[roomKey] = {} #create room
             for qoi in roomQois:
                 roomVentilation[roomKey][qoi] = [] #initlialize list for extra probes
-        if roomKey not in roomLocs:
-            roomLocs[roomKey] = {} #create location coordinateds
-            for d in dims:
-                roomLocs[roomKey][d] = [] #initialize list
         for qoi in roomQois:
-            addValue = windowStats.loc[windowKey, qoi] # in general, assumed that qois like mean/net are double counted across windows
+            addValue = windowStats.loc[windowKey, qoi] # keep as list to be combined later (outside function)
             roomVentilation[roomKey][qoi].append(addValue)
-        for d in dims:
-            roomLocs[roomKey][d].append(windowStats.loc[windowKey, d])
 
         roomVentilation[roomKey].update(row[["houseType", "blockType"]])
         roomVentilation[roomKey]["roomType"] = room
         roomList.append(room)
 
-    windowStats["roomType"] = roomList # modifying in place, should modify outside function i.e. PBR
+    windowStats["roomType"] = roomList # modifying in place, should modify outside function i.e. pass by reference
     roomVentilation = pd.DataFrame(roomVentilation).T
-    roomLocs = pd.DataFrame(roomLocs).T
-    roomLocs = roomLocs.map(lambda L: np.mean(L))
 
-    return pd.concat([roomVentilation, roomLocs], axis = "columns")
+    return roomVentilation
 
 
 class Probes(utils.Helper):
@@ -606,7 +594,10 @@ class Probes(utils.Helper):
                     fig.supxlabel(plot_params['xlabel'])
                 if 'ylabel' in plot_params:
                     fig.supylabel(plot_params['ylabel'])
-                ax.legend()
+                if ('exclude legend' in plot_params and plot_params['exclude legend'] == True) == False:
+                    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+                    width, height = fig.get_size_inches()
+                    fig.set_size_inches(width * 1.25, height) # increase width for legend
 
     
     
@@ -655,7 +646,11 @@ class Probes(utils.Helper):
                     fig.supxlabel(plot_params['xlabel'])
                 if 'ylabel' in plot_params:
                     fig.supylabel(plot_params['ylabel'])
-                ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+                if ('exclude legend' in plot_params and plot_params['exclude legend'] == True) == False:
+                    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+                    width, height = fig.get_size_inches()
+                    fig.set_size_inches(width * 1.25, height) # increase width for legend
+
         
         return fig, ax
 
@@ -667,7 +662,8 @@ class Probes(utils.Helper):
         stack = "np.s_[::]",
         parrallel = False,
         processing = None,
-        plot_params={}
+        plot_params={},
+        series_to_df = True
     ):
 
         quants, stack, names, steps = [self.get_input(input) for input in [quants, stack, names, steps]]
@@ -675,12 +671,12 @@ class Probes(utils.Helper):
         processed_data = self.process_data(names, steps, quants, stack, processing)
         processed_data = utils.dict_apply(ddf_to_pdf)(processed_data)
         df_data = pd.Series(processed_data).unstack()
-        if df_data.shape[1] == 1:
-            df_data = df_data.iloc[:,0] # convert to series
-            isSeries = df_data.map(lambda df: True if df.shape[0] == df.size else False) # check if each value is a series
-            isSeries = isSeries.to_numpy().prod()
-            if isSeries:
-                df_data = df_data.map(lambda df: df.iloc[:,0] if isinstance(df, pd.core.frame.DataFrame) else df)
+        isSeries = df_data.map(lambda df: True if max(df.shape) == df.size else False) # check if each value is a series
+        isSeries = isSeries.to_numpy().prod()
+        if isSeries:
+            df_data = df_data.map(lambda df: df.squeeze() if isinstance(df, pd.core.frame.DataFrame) else df)
+            if max(df_data.shape) == df_data.size and series_to_df:
+                df_data = df_data.squeeze() # convert to series
                 df_data = pd.concat(df_data.to_dict(), axis = "columns")
                 if isinstance(df_data.keys(), pd.MultiIndex):
                     df_data = df_data.droplevel(-1, axis = "columns")
