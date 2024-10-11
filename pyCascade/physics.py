@@ -1,6 +1,45 @@
 import numpy as np
 from pyCascade import utils
 from matplotlib import pyplot as plt
+from scipy.optimize import curve_fit
+
+def loglaw_with_disp(z, uStar, z0, disp):
+    vK_const = .41
+    z_scaled = (z - disp)/z0
+    z_scaled[z_scaled < 1] = 1
+
+    log_wind = (uStar/vK_const)*np.log(z_scaled)
+    return log_wind
+
+def fit_loglaw(U, y, fit_disp = False):
+    kappa = 0.41
+    c0, c1 = np.polyfit(U, np.log(y), 1) #fit a line to the log of the height
+    uStar = kappa/c0 #get uStar from the slope
+    z0 = np.exp(c1) #get z0 from the intercept
+    disp = 0
+
+    if fit_disp == True:
+        popt, _ = curve_fit(loglaw_with_disp, y, U, p0=[uStar, z0, disp], bounds=((0,0,0),(np.inf,np.inf,np.inf)), method='dogbox') #fit the log law with displacement
+        uStar, z0, disp = popt
+
+    return uStar, z0, disp
+
+def getVentRi(delT, V, H = 3):
+    g = 10
+    Tref = 288.15
+    return g * delT / Tref * H / V**2
+
+def velocityFromVentRi(Ri, delT, H = 3):
+    g = 10
+    Tref = 288.15
+    return np.sqrt(g * delT / Tref * H / Ri)
+
+def delTFromVentRi(Ri, V, H = 3):
+    g = 10
+    Tref = 288.15
+    return Ri / (g / Tref * H / V**2)
+
+
 
 
 class LES_Physics(utils.Helper):
@@ -9,41 +48,22 @@ class LES_Physics(utils.Helper):
         self.LES_params = {}
         self.LES_params.update(LES_params)
 
-    def calc_Uref_q(self, uStar = None, z0 = None):
-        uStar = utils.get_input(uStar, self.LES_params['uStar'])
-        z0 = utils.get_input(z0, self.LES_params['z0'])
-
-        # deltas = self.LES_parmas['deltas']
-
-        Uref = uStar/0.41*np.log(1.975/z0)
-        q = 0.5*1.225*Uref**2
-
-        self.LES_params.update({
-            'Uref': Uref,
-            'q': q
-        })
-
     def plot_log_wind(
         self, 
         uStar = "self.LES_params['uStar']", 
         z0 = "self.LES_params['z0']", 
         disp = "self.LES_params['disp']", 
-        vK_const = "self.LES_params['vK_const']",
         z_values = "self.LES_params['z_values']",
         ):
 
-        uStar, z0, disp, vK_const, z_values = [self.get_input(input) for input in [uStar, z0, disp, vK_const, z_values]]
+        uStar, z0, disp, z_values = [self.get_input(input) for input in [uStar, z0, disp, z_values]]
 
-        z_scaled = (z_values - disp)/z0
-        z_scaled[z_scaled<1] = 1
-
-        log_wind = (uStar/vK_const)*np.log(z_scaled)
-        self.LES_params['log_wind'] = log_wind
-        plt.plot(log_wind, z_values)
+        log_wind = loglaw_with_disp(z_values, uStar, z0, disp)
+        plt.plot(log_wind, z_values, label = 'Log Profile')
         plt.xlabel('velocity')
         plt.ylabel('height [m]')
 
-        for key in ['uStar', 'z0', 'disp', 'vK_const', 'z_values']:
+        for key in ['uStar', 'z0', 'disp', 'z_values', 'log_wind']:
             self.LES_params[key] = eval(key) #save params
 
     def calc_flatplate_quantities(
@@ -80,4 +100,74 @@ class LES_Physics(utils.Helper):
         for key in ['yPlus', 'Rex', 'Cf', 'tauW', 'uFric', 'spacingW']:
             self.LES_params['flatplate'][key] = eval(key) #save params
 
+    def calc_norm_pressure_source(
+        self,
+        factor,
+        uStar = "self.LES_params['uStar']",
+        Lz = "self.LES_params['z_values'][-1] - self.LES_params['z_values'][0]",
+
+        ):
+
+        uStar, Lz = [self.get_input(input) for input in [uStar, Lz]]
+
+        print(f"uStar is {uStar} and Lz is {Lz}")
+
+        norm_pressure_source = factor*(uStar**2)/Lz
+
+        print(f"the normalized pressure source is {norm_pressure_source}")
+
+        key = 'norm_pressure_source'
+        self.LES_params[key] = eval(key)
+
+    def plot_spinup_velocity(
+        self, 
+        log_wind = "self.LES_params['log_wind']", 
+        z_values = "self.LES_params['z_values']",
+        ):
+
+        log_wind, z_values = [self.get_input(input) for input in [log_wind, z_values]]
+        
+        domain_height = np.max(z_values)
+        u_bulk = np.trapz(log_wind, z_values)/domain_height
+        print(f'u_bulk is {u_bulk}')
+        print(f'domain height is {domain_height}')
+
+        spinup_profile = u_bulk*2*(1-z_values/domain_height)
+        
+
+        plt.plot(spinup_profile, z_values, label='Linear')
+        plt.xlabel('velocity')
+        plt.ylabel('height [m]')
+
+        for key in ['log_wind', 'z_values', 'u_bulk', 'spinup_profile']:
+            self.LES_params[key] = eval(key) #save params
+
+    def plot_spinup_velocity2(        
+        self, 
+        uStar = "self.LES_params['uStar']", 
+        z0 = "self.LES_params['z0']", 
+        disp = "self.LES_params['disp']", 
+        z_values = "self.LES_params['z_values']",
+        ):
+
+        uStar, z0, disp, z_values = [self.get_input(input) for input in [uStar, z0, disp, z_values]]
+
+        H = np.max(z_values)
+        H_scaled = H - disp
+        vK_const = 0.41
+        u_bulk = uStar/vK_const*(H_scaled*np.log(H_scaled/z0) - H_scaled + 1)/H
+
+        print(f'u_bulk is {u_bulk}')
+        print(f'domain height is {H}')
+
+        spinup_profile2 = 2*(loglaw_with_disp(z_values, uStar, z0, disp) - u_bulk*(z_values/H))
+
+        plt.plot(spinup_profile2, z_values, label = '2xLog - Linear')
+        plt.xlabel('velocity')
+        plt.ylabel('height [m]')
+
+        for key in ['z_values', 'u_bulk', 'spinup_profile2']:
+            self.LES_params[key] = eval(key) #save params
+
+        
 
