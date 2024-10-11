@@ -3,7 +3,6 @@ import dask
 import numpy as np
 import statsmodels.api as sm
 import scipy as sp
-from scipy.optimize import curve_fit
 from matplotlib import pyplot as plt
 import matplotlib.colors as mcolors
 from IPython.core.debugger import set_trace
@@ -78,8 +77,11 @@ class Qty(utils.Helper):
 
         self.y = None
 
-    def computeQty(self, data_dict, t_data, theta_wind = 0, u_str = 'comp(u,0)', v_str = 'comp(u,1)', w_str = 'comp(u,2)', p_str = 'p', calc_stats = True):
+        self.haveStats = False
+
+    def loadData(self, data_dict, t_data, theta_wind = 0, u_str = 'comp(u,0)', v_str = 'comp(u,1)', w_str = 'comp(u,2)', p_str = 'p'):
         self.fsamp = 1/(t_data.iloc[-1]-t_data.iloc[-2])
+        self.t_data = t_data
         theta_wind *= np.pi / 180
         #claculating in frame aligned with mean wind
         self.u = data_dict[u_str] * np.cos(theta_wind) + data_dict[w_str] * np.sin(theta_wind)
@@ -91,101 +93,111 @@ class Qty(utils.Helper):
             print("pressure data not founnd, replacing with zeros")
             self.p = self.u * 0
 
-        if calc_stats:
-            self.meanU = np.mean(self.u, axis = 'index')
-            self.meanV = np.mean(self.v, axis = 'index')
-            self.meanW = np.mean(self.w, axis = 'index')
-            self.meanP = np.mean(self.p, axis = 'index')
+    def calc_stats(self):
+        self.meanU = np.mean(self.u, axis = 'index')
+        self.meanV = np.mean(self.v, axis = 'index')
+        self.meanW = np.mean(self.w, axis = 'index')
+        self.meanP = np.mean(self.p, axis = 'index')
 
-            self.uPrime = self.u - self.meanU
-            self.vPrime = self.v - self.meanV
-            self.wPrime = self.w - self.meanW
-            self.pPrime = self.p - self.meanP
+        self.uPrime = self.u - self.meanU
+        self.vPrime = self.v - self.meanV
+        self.wPrime = self.w - self.meanW
+        self.pPrime = self.p - self.meanP
 
-            self.prms = np.sqrt(np.mean(self.pPrime**2, axis = 'index'))
+        self.prms = np.sqrt(np.mean(self.pPrime**2, axis = 'index'))
 
-            self.uu = self.uPrime**2
-            self.vv = self.vPrime**2
-            self.ww = self.wPrime**2
+        self.uu = self.uPrime**2
+        self.vv = self.vPrime**2
+        self.ww = self.wPrime**2
 
-            self.uv = self.uPrime*self.vPrime
-            self.vw = self.vPrime*self.wPrime
-            self.uw = self.uPrime*self.wPrime
+        self.uv = self.uPrime*self.vPrime
+        self.vw = self.vPrime*self.wPrime
+        self.uw = self.uPrime*self.wPrime
 
-            self.Iu = np.sqrt(self.uu) / self.meanU
-            self.Iv = np.sqrt(self.vv) / self.meanV
-            self.Iw = np.sqrt(self.ww) / self.meanW
+        self.Iu = np.sqrt(self.uu) / self.meanU
+        self.Iv = np.sqrt(self.vv) / self.meanV
+        self.Iw = np.sqrt(self.ww) / self.meanW
 
-            self.uu_avg = np.mean(self.uu, axis = 'index')
-            self.vv_avg = np.mean(self.vv, axis = 'index')
-            self.ww_avg = np.mean(self.ww, axis = 'index')
-            self.pp_avg = np.mean(self.pPrime**2, axis = 'index')
+        self.uu_avg = np.mean(self.uu, axis = 'index')
+        self.vv_avg = np.mean(self.vv, axis = 'index')
+        self.ww_avg = np.mean(self.ww, axis = 'index')
+        self.pp_avg = np.mean(self.pPrime**2, axis = 'index')
 
-            self.uv_avg = np.mean(self.uv, axis = 'index')
-            self.vw_avg = np.mean(self.vw, axis = 'index')
-            self.uw_avg = np.mean(self.uw, axis = 'index')
+        self.uv_avg = np.mean(self.uv, axis = 'index')
+        self.vw_avg = np.mean(self.vw, axis = 'index')
+        self.uw_avg = np.mean(self.uw, axis = 'index')
 
-            self.Iu_avg = np.sqrt(self.uu_avg)/self.meanU
-            self.Iv_avg = np.sqrt(self.vv_avg)/self.meanU
-            self.Iw_avg = np.sqrt(self.ww_avg)/self.meanU
+        self.Iu_avg = np.sqrt(self.uu_avg)/self.meanU
+        self.Iv_avg = np.sqrt(self.vv_avg)/self.meanU
+        self.Iw_avg = np.sqrt(self.ww_avg)/self.meanU
 
-            N, idx = self.u.shape
+    def calc_scales(self):
+        if self.haveStats == False:
+            self.calc_stats()
+        N, idx = self.u.shape
 
-            Lx = []
-            Ly = []
-            Lz = []
+        Lx = []
+        Ly = []
+        Lz = []
             
-            plt.figure()
-            C = 0;
-            for i in range(idx):
-                C += 1/(idx+1)
-                Lx.append(LengthScale(self.uPrime.values[:,i], self.meanU.values[i], t_data, True, str(C)))
-                Ly.append(LengthScale(self.vPrime.values[:,i], self.meanU.values[i], t_data))
-                Lz.append(LengthScale(self.wPrime.values[:,i], self.meanU.values[i], t_data))
+        plt.figure()
+        C = 0
+        for i in range(idx):
+            C += 1/(idx+1)
+            Lx.append(LengthScale(self.uPrime.values[:,i], self.meanU.values[i], self.t_data, True, str(C)))
+            Ly.append(LengthScale(self.vPrime.values[:,i], self.meanU.values[i], self.t_data))
+            Lz.append(LengthScale(self.wPrime.values[:,i], self.meanU.values[i], self.t_data))
 
-            Lx, Ly, Lz = np.array(dask.compute(Lx, Ly, Lz)) #execute the dask graph
+        Lx, Ly, Lz = np.array(dask.compute(Lx, Ly, Lz)) #execute the dask graph
 
-            self.Lx = np.array(Lx)
-            self.Ly = np.array(Ly)
-            self.Lz = np.array(Lz)
+        self.Lx = np.array(Lx)
+        self.Ly = np.array(Ly)
+        self.Lz = np.array(Lz)
 
-            self.f, self.Euu = sp.signal.welch(self.uPrime, fs = self.fsamp, axis = 0, nperseg = N//4, scaling = 'density', detrend = 'constant') 
-            _, self.Evv = sp.signal.welch(self.vPrime, fs = self.fsamp, axis = 0, nperseg = N//4, scaling = 'density', detrend = 'constant')
-            _, self.Eww = sp.signal.welch(self.wPrime, fs = self.fsamp, axis = 0, nperseg = N//4, scaling = 'density', detrend = 'constant')
+    def calc_spectra(self):
+        if self.haveStats == False:
+            self.calc_stats()
+        N, idx = self.u.shape
 
-            _, self.Epp = sp.signal.welch(self.pPrime, fs = self.fsamp, axis = 0, nperseg = N//4, scaling = 'density', detrend = 'constant')
+        self.f, self.Euu = sp.signal.welch(self.uPrime, fs = self.fsamp, axis = 0, nperseg = N//4, scaling = 'density', detrend = 'constant') 
+        _, self.Evv = sp.signal.welch(self.vPrime, fs = self.fsamp, axis = 0, nperseg = N//4, scaling = 'density', detrend = 'constant')
+        _, self.Eww = sp.signal.welch(self.wPrime, fs = self.fsamp, axis = 0, nperseg = N//4, scaling = 'density', detrend = 'constant')
+
+        _, self.Epp = sp.signal.welch(self.pPrime, fs = self.fsamp, axis = 0, nperseg = N//4, scaling = 'density', detrend = 'constant')
 
     def set_y(self, y):
         self.y = y
 
-def plot_ABL(qty_dict: dict, fit_disp = False):
-    fig, ax = plt.subplots()
+def plot_ABL_Series(s):
+    y = s.index.values
+    U = s.values
+    
+
+
+def plot_ABL(qty_dict: dict, fit_disp = False, ax = None, returnFit = False, colorOffset = 0, linestyle = '-', fmt = 'o'):
+    if ax is None:
+        fig, ax = plt.subplots()
     colors = list(mcolors.TABLEAU_COLORS)
 
     # fit log law to find uStar, z0, disp
-    kappa = 0.41
     for i, (name, qty) in enumerate(qty_dict.items()):
+        ic = i + colorOffset
         y = qty.y #get the height of the probes
-        ax.plot(qty.meanU, y, 'o',color = colors[i], label=f'{name.replace("_", " ")}')
-
-        c0, c1 = np.polyfit(qty.meanU, np.log(y), 1) #fit a line to the log of the height
-        uStar = kappa/c0 #get uStar from the slope
-        z0 = np.exp(c1) #get z0 from the intercept
-        disp = 0
-
-        if fit_disp == True:
-            popt, _ = curve_fit(physics.loglaw_with_disp, y, qty.meanU, p0=[uStar, z0, disp], bounds=((0,0,0),(np.inf,np.inf,np.inf)), method='dogbox') #fit the log law with displacement
-            uStar, z0, disp = popt
+        ax.plot(qty.meanU, y, fmt, color = colors[ic%len(colors)], label=f'{name.replace("_", " ")}', markersize=4)
+        uStar, z0, disp = physics.fit_loglaw(qty.meanU, y, fit_disp = fit_disp)
             
         y_plot = np.linspace(0, y[-1], 100)
-        ax.plot(physics.loglaw_with_disp(y_plot, uStar, z0, disp), y_plot, color = colors[i])
-        print(f"{name}: u* = {uStar}, z0 = {z0}, disp = {disp}")
+        ax.plot(physics.loglaw_with_disp(y_plot, uStar, z0, disp), y_plot, color = colors[ic%len(colors)], linestyle = linestyle, linewidth=1)
+        # print(f"{name}: u* = {uStar}, z0 = {z0}, disp = {disp}")
 
     ax.set_xlabel('mean velocity [m/s]')
     ax.set_ylabel('height [m]')
     ax.legend()
 
-    return fig, ax
+    if returnFit:
+        return ax, {"uStar": uStar, "z0": z0, "disp": disp}
+    else:
+        return ax
 
 def plot_length_scales(qty_dict: dict):
     fig, ax = plt.subplots(1,3)

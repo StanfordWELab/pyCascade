@@ -1,6 +1,7 @@
 import numpy as np
 from pyCascade import utils
 from matplotlib import pyplot as plt
+from scipy.optimize import curve_fit
 
 def loglaw_with_disp(z, uStar, z0, disp):
     vK_const = .41
@@ -9,6 +10,19 @@ def loglaw_with_disp(z, uStar, z0, disp):
 
     log_wind = (uStar/vK_const)*np.log(z_scaled)
     return log_wind
+
+def fit_loglaw(U, y, fit_disp = False):
+    kappa = 0.41
+    c0, c1 = np.polyfit(U, np.log(y), 1) #fit a line to the log of the height
+    uStar = kappa/c0 #get uStar from the slope
+    z0 = np.exp(c1) #get z0 from the intercept
+    disp = 0
+
+    if fit_disp == True:
+        popt, _ = curve_fit(loglaw_with_disp, y, U, p0=[uStar, z0, disp], bounds=((0,0,0),(np.inf,np.inf,np.inf)), method='dogbox') #fit the log law with displacement
+        uStar, z0, disp = popt
+
+    return uStar, z0, disp
 
 def getVentRi(delT, V, H = 3):
     g = 10
