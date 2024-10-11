@@ -120,10 +120,10 @@ def mul_names(data_dict, names, mul, t_data=None):
     return data_dict
 
 class Probes(utils.Helper):
-    def __init__(self, directory, probe_type = "PROBES", file_type = "csv", directory_parquet = None, flux_quants = None):
+    def __init__(self, directory, probe_type = "PROBES", file_type = "csv", directory_parquet = None, flux_quants = None, name_pattern=''):
         """
         File info is stored in a tuple-indexed dictionary. Once data is access, it is read in as a (nested) tuple-indexed dictionary.
-        For POINTCLOUD_PROBES data is indexed as self.data[(name,step)][(stack, quant)]. For PROBES data is indexed as 
+        For POINTCLOUD_PROBES data is indexed as self.data[(name,step)][(stack, quant)]. For PROBES data is indexed as s
         self.data[(name, quant)][(stack, step)].
         """
         
@@ -145,9 +145,9 @@ class Probes(utils.Helper):
         # create a generator to iterate over probe paths
         
         if file_type == "parquet":
-            path_generator = glob.iglob(f'{self.directory_parquet}/*.*')
+            path_generator = glob.iglob(f'{self.directory_parquet}/*{name_pattern}*.*')
         else:
-            path_generator = glob.iglob(f'{self.directory}/*.*')
+            path_generator = glob.iglob(f'{self.directory}/*{name_pattern}*.*')
 
         # get data dict and associated info 
         if self.probe_type == "POINTCLOUD_PROBES":
@@ -157,6 +157,9 @@ class Probes(utils.Helper):
         else:
             self.data, probe_names, probe_steps, probe_quants, probe_times, self.locations, self.areas, self.probe_paths = probeReadWrite.readBulkProbes(path_generator, self.file_type, self.directory_parquet, quants = flux_quants, probe_type=probe_type)
             probe_stack = []
+
+        if len(probe_names) == 0:
+            raise Exception("No probe data found")
             
         self.steps_written = len(probe_steps)
         # remove steps and times that were written twice during run restarts
@@ -165,7 +168,10 @@ class Probes(utils.Helper):
             self.probe_times = probe_times.compute().iloc[self.unique_steps_indexes]
             self.probe_times.index = probe_steps
             self.probe_steps = [int(step) for step in probe_steps]
-            self.dt = self.probe_times.iloc[-1]-self.probe_times.iloc[-2]
+            if len(self.probe_times) > 1:
+                self.dt = self.probe_times.iloc[-1]-self.probe_times.iloc[-2]
+            else:
+                self.dt = None
         else:
             self.probe_steps = utils.sort_and_remove_duplicates(probe_steps)
 
@@ -253,6 +259,8 @@ class Probes(utils.Helper):
             return df
     
         processed_data = utils.dict_apply(index_unique_steps)(processed_data)
+        if not processed_data:
+            raise Exception("Requested data does not exist")
 
         if processing is not None:
             for i, process_step in enumerate(processing):
@@ -269,7 +277,8 @@ class Probes(utils.Helper):
             steps = "self.probe_steps", 
             quants = "self.probe_quants", 
             stack = "np.s_[::]", 
-            processing = None):
+            processing = None
+            ):
         
         quants, stack, names, steps = [self.get_input(input) for input in [quants, stack, names, steps]]
         
@@ -277,14 +286,14 @@ class Probes(utils.Helper):
         for name in names:
             qty = quantities.Qty()
             processed_data = self.process_data([name], steps, quants, stack, processing)
-            qty.computeQty(processed_data,
+            qty.loadData(processed_data,
                            self.probe_times[steps],
                            theta_wind = theta_wind,
                            u_str = (name, 'comp(u,0)'), 
                            v_str = (name, 'comp(u,1)'), 
                            w_str = (name, 'comp(u,2)'), 
                            p_str = (name, 'p'), 
-                           calc_stats = True)
+                           )
             qty.set_y(self.locations[name]['y'].values[stack])
             qty_dict[name] = qty
         return qty_dict
@@ -434,8 +443,9 @@ class Probes(utils.Helper):
                     fig.supylabel(plot_params['ylabel'])
                 if ('exclude legend' in plot_params and plot_params['exclude legend'] == True) == False:
                     ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-                    width, height = fig.get_size_inches()
-                    fig.set_size_inches(width * 1.25, height) # increase width for legend
+                    if i == len(names) - 1:
+                        width, height = fig.get_size_inches()
+                        fig.set_size_inches(width * 1.25, height) # increase width for legend
 
     
     
@@ -486,8 +496,9 @@ class Probes(utils.Helper):
                     fig.supylabel(plot_params['ylabel'])
                 if ('exclude legend' in plot_params and plot_params['exclude legend'] == True) == False:
                     ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-                    width, height = fig.get_size_inches()
-                    fig.set_size_inches(width * 1.25, height) # increase width for legend
+                    if i == len(names) - 1:
+                        width, height = fig.get_size_inches()
+                        fig.set_size_inches(width * 1.25, height) # increase width for legend
 
         
         return fig, ax

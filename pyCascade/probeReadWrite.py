@@ -202,9 +202,13 @@ def readBulkProbes(pathGenerator, file_type = 'csv', directory_parquet = None, q
             probe_quants = ddf.columns.values
             gotTimes = True
         
-        for quant in probe_quants:
+        for quant in ddf.columns.values:
             my_dict[(probe_name, quant)] = ddf[[quant]]
 
         probe_names.append(probe_name)
         probe_paths.append(path)
+        
+    if gotTimes == False:
+        raise Exception("Probes not found")
+
     return my_dict, probe_names, probe_steps, probe_quants, probe_times, locations, areas, probe_paths
