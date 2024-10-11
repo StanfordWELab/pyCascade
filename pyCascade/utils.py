@@ -1,5 +1,7 @@
 import time
 import numpy as np
+from functools import wraps
+from IPython.core.debugger import set_trace
 
 class Helper:
     def get_input(self, input):
@@ -29,9 +31,6 @@ def sort_and_remove_duplicates(l):
     l.sort()
     return l
 
-def dict_apply(f):
-    return lambda d: {k: f(v) for k, v in d.items()}
-
 def start_timer(description = None):
     if description != None:
         print(description)
@@ -42,18 +41,43 @@ def end_timer(st, description):
     elapsed_time = round(et - st)
     print(f"{description} took {elapsed_time} seconds")
 
-class MyLazyDict(dict):
-    '''
-    Create a lazy dictionary by modifying the __getitem__ attribute. New dictionary dynamically reads in data as it is accessed,
-    and memorizes data once it has been read in.
-    '''
 
-    def __getitem__(self, item):
-        # retrieve the current dictionary value
-        value = dict.__getitem__(self, item)
-        if isinstance(value, tuple):  # check if data has been read in
-            # print('reading in data')
-            value = eval_tuple(value)
-            # reset the dictionary value to the data
-            dict.__setitem__(self, item, value)
-        return value
+def last_unique(a):
+    n_ind = len(a)
+    a, ind_unique = np.unique(np.flip(a), return_index = True)
+    ind_unique = n_ind-1-ind_unique
+    
+    return a, ind_unique
+
+
+def no_kwargs(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        return func(*args)
+    return wrapper
+
+def dict_apply(func):
+    @wraps(func)
+    def wrapper(d):
+        if isinstance(d, dict):
+            return {k: func(v) for k, v in d.items()}
+        else:
+            return func(d)
+    return wrapper
+
+# class MyLazyDict(dict):
+#     '''
+#     Create a lazy dictionary by modifying the __getitem__ attribute. New dictionary dynamically reads in data as it is accessed,
+#     and memorizes data once it has been read in.
+#     '''
+
+#     def __getitem__(self, item):
+#         # retrieve the current dictionary value
+#         value = dict.__getitem__(self, item)
+#         if isinstance(value, tuple):  # check if data has been read in
+#             # print('reading in data')
+#             value = eval_tuple(value)
+#             # reset the dictionary value to the data
+#             dict.__setitem__(self, item, value)
+#         return value
+

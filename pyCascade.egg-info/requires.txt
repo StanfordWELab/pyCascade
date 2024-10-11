@@ -1,6 +1,0 @@
-glob2
-numpy
-pandas
-matplotlib
-pandarallel
-opencv-python
