@@ -9,12 +9,19 @@ from IPython.core.debugger import set_trace
 
 
 @dask.delayed
-def LengthScale(uPrime, meanU, time, show_plot=False, C = "1"):
+def LengthScale(uPrime, meanU, time, show_plot=False, C = "1", maxL = None):
     """
     Compute the length scale of the flow using the exponential fit method
     """
     func = lambda x, a: np.exp(-x/a) #define theoretical exponential decay function
     time -= time.iloc[0] # shift time to start at zero
+
+    if maxL:
+        maxT = int(maxL / meanU)
+        maxTIndex = int((time - maxT).abs().idxmin())
+        time = time.iloc[:maxTIndex+1]
+        uPrime = uPrime.iloc[:maxTIndex+1]
+
     
     R_u = sm.tsa.stattools.acf(uPrime, nlags = len(time)-1, fft = True) # compute autocorrelation function
     R_uFit, _ = sp.optimize.curve_fit(func, time, R_u, p0=1, bounds = (0,np.inf)) # fit the exponential decay function to the autocorrelation function
@@ -131,7 +138,7 @@ class Qty(utils.Helper):
         self.Iv_avg = np.sqrt(self.vv_avg)/self.meanU
         self.Iw_avg = np.sqrt(self.ww_avg)/self.meanU
 
-    def calc_scales(self):
+    def calc_scales(self, maxL = None):
         if self.haveStats == False:
             self.calc_stats()
         N, idx = self.u.shape
@@ -144,9 +151,9 @@ class Qty(utils.Helper):
         C = 0
         for i in range(idx):
             C += 1/(idx+1)
-            Lx.append(LengthScale(self.uPrime.values[:,i], self.meanU.values[i], self.t_data, True, str(C)))
-            Ly.append(LengthScale(self.vPrime.values[:,i], self.meanU.values[i], self.t_data))
-            Lz.append(LengthScale(self.wPrime.values[:,i], self.meanU.values[i], self.t_data))
+            Lx.append(LengthScale(self.uPrime.values[:,i], self.meanU.values[i], self.t_data, True, str(C), maxL = maxL))
+            Ly.append(LengthScale(self.vPrime.values[:,i], self.meanU.values[i], self.t_data, maxL = maxL))
+            Lz.append(LengthScale(self.wPrime.values[:,i], self.meanU.values[i], self.t_data, maxL = maxL))
 
         Lx, Ly, Lz = np.array(dask.compute(Lx, Ly, Lz)) #execute the dask graph
 
@@ -174,7 +181,7 @@ def plot_ABL_Series(s):
     
 
 
-def plot_ABL(qty_dict: dict, fit_disp = False, ax = None, returnFit = False, colorOffset = 0, linestyle = '-', fmt = 'o'):
+def plot_ABL(qty_dict: dict, fit_disp = False, ax = None, returnFit = False, fitSlice = np.s_[::], colorOffset = 0, linestyle = '-', fmt = 'o', markersize = 4):
     if ax is None:
         fig, ax = plt.subplots()
     colors = list(mcolors.TABLEAU_COLORS)
@@ -183,11 +190,13 @@ def plot_ABL(qty_dict: dict, fit_disp = False, ax = None, returnFit = False, col
     for i, (name, qty) in enumerate(qty_dict.items()):
         ic = i + colorOffset
         y = qty.y #get the height of the probes
-        ax.plot(qty.meanU, y, fmt, color = colors[ic%len(colors)], label=f'{name.replace("_", " ")}', markersize=4)
-        uStar, z0, disp = physics.fit_loglaw(qty.meanU, y, fit_disp = fit_disp)
+        ax.plot(qty.meanU, y, fmt, color = colors[ic%len(colors)], label=f'{name.replace("_", " ")}', markersize=markersize)
+        Ufit = qty.meanU[fitSlice]
+        yfit = y[fitSlice]
+        uStar, z0, disp = physics.fit_loglaw(Ufit, yfit, fit_disp = fit_disp)
             
         y_plot = np.linspace(0, y[-1], 100)
-        ax.plot(physics.loglaw_with_disp(y_plot, uStar, z0, disp), y_plot, color = colors[ic%len(colors)], linestyle = linestyle, linewidth=1)
+        ax.plot(physics.loglaw_with_disp(y_plot, uStar, z0, disp), y_plot, color = colors[ic%len(colors)], linestyle = linestyle, linewidth=1, fillstyle="none")
         # print(f"{name}: u* = {uStar}, z0 = {z0}, disp = {disp}")
 
     ax.set_xlabel('mean velocity [m/s]')
