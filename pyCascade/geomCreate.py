@@ -262,7 +262,7 @@ def makeDoors(rooms_params, w, h, nprobes_w, nprobes_h):
 
     return sumProbedGeom(doors_list)
 
-def makeWindows(rooms_params, w, h, nprobes_w, nprobes_h, extraProbeOffset = 0):
+def makeWindows(rooms_params, w, h, nprobes_w, nprobes_h, extraProbeOffset = 0, spacing = "flux"):
     x = rooms_params['x']
     y = rooms_params['y']
     z = rooms_params['z']
@@ -286,7 +286,7 @@ def makeWindows(rooms_params, w, h, nprobes_w, nprobes_h, extraProbeOffset = 0):
             nprobes = (nprobes_w, nprobes_h, 1)
             name = f"zwindow_{i}-{k}"
             extraProbeTile = np.array([[0, 0, extraProbeOffset * (1 - 2*(k==0))]])
-        window = makeProbedCube(size, nprobes, name, True)
+        window = makeProbedCube(size, nprobes, name, True, spacing = spacing)
         if extraProbeOffset != 0:
             window.probes += [probeSetup.Probes(tile = extraProbeTile, name = f"extraProbe_{name}", type = "PROBE")]
         window.translate(disp)
