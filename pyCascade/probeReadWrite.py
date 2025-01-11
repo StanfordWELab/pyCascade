@@ -104,7 +104,7 @@ def readPointCloudProbes(pathGenerator):
 
     for path in pathGenerator:
         path = path.replace(".parquet", '')
-        if ".pcb" not in path:
+        if ".pcd" not in path:
             continue
         file_name = path.split('/')[-1]  # get the local file name
         probe_info = file_name.split('.')
@@ -120,10 +120,12 @@ def readPointCloudProbes(pathGenerator):
     probe_names = utils.sort_and_remove_duplicates(probe_names)
     
     # get the all quants and (max) stack across all probes
+    probe_stack = np.array([])
+    probe_quants = np.array([])
     for name in probe_names:
         representative_df = my_dict[(name, probe_steps[0])].compute()
-        probe_stack = np.append(probe_stack, representative_df.columns.values)
-        probe_quants = np.append(probe_quants, representative_df.index.values)
+        probe_stack = np.append(probe_stack, representative_df.index.values)
+        probe_quants = np.append(probe_quants, representative_df.columns.values)
 
     return my_dict, probe_names, probe_steps, probe_quants, probe_stack, probe_paths
 
