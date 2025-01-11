@@ -136,7 +136,7 @@ class Probes(utils.Helper):
         else:
             self.directory_parquet = directory_parquet
 
-        # Prepare paruet directory if reading csvs 
+        # Prepare parquet directory if reading csvs 
         if self.file_type == "csv":
             isExist = os.path.exists(self.directory_parquet)
             if not isExist:
