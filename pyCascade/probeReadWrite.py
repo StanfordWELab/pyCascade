@@ -7,12 +7,15 @@ import numpy as np
 from IPython.core.debugger import set_trace
 
 
-def read_pointcloud_probes(filename):
-    return dd.read_csv(filename, delim_whitespace=True)  # read as dataframe
+# def read_pointcloud_probes(filename):
+#     return dd.read_csv(filename, delim_whitespace=True)  # read as dataframe
 
 def read_probes_file_switch(filename, file_type = 'csv'):
     if file_type == 'csv':
-        ddf = dd.read_csv(filename, delimiter = ' ', comment = "#",header = None, assume_missing=True, encoding = 'utf-8')
+        if ".pcd" in filename: #POINTCLOUD_PROBE
+            ddf = dd.read_csv(filename, delim_whitespace=True)
+        else:
+            ddf = dd.read_csv(filename, delimiter = ' ', comment = "#",header = None, assume_missing=True, encoding = 'utf-8')
     elif file_type == 'parquet':
         ddf = dd.read_parquet(filename)
     else:
@@ -91,7 +94,7 @@ def csv_to_parquet(csv_path, parquet_path, overwrite = False):
     return
 
     
-def readPointCloudProbes(pathGenerator):
+def readPointCloudProbes(pathGenerator, filetype = "cvs"):
     """
     This is the remenants of old functionality preserved for future use. This will need to be updated/fixed before use.
     """
@@ -103,15 +106,15 @@ def readPointCloudProbes(pathGenerator):
     my_dict = {}  # this will be a tuple indexed 1-level dictionary.
 
     for path in pathGenerator:
-        path = path.replace(".parquet", '')
         if ".pcd" not in path:
             continue
         file_name = path.split('/')[-1]  # get the local file name
+        file_name = file_name.replace(".parquet", '')
         probe_info = file_name.split('.')
         probe_name, probe_step, _ = probe_info[:]
         
         probe_step = int(probe_step)
-        my_dict[(probe_name, probe_step)] = read_pointcloud_probes(path)
+        my_dict[(probe_name, probe_step)] = read_probes_file_switch(path, filetype) #read_pointcloud_probes(path)
 
         probe_names.append(probe_name)
         probe_steps.append(probe_step) 

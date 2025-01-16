@@ -151,7 +151,7 @@ class Probes(utils.Helper):
 
         # get data dict and associated info 
         if self.probe_type == "POINTCLOUD_PROBES":
-            self.data, probe_names, probe_steps, probe_quants, probe_stack, self.probe_paths = probeReadWrite.readPointCloudProbes(path_generator)
+            self.data, probe_names, probe_steps, probe_quants, probe_stack, self.probe_paths = probeReadWrite.readPointCloudProbes(path_generator, self.file_type)
         elif self.probe_type == "PROBES":
             self.data, probe_names, probe_steps, probe_quants, probe_stack, probe_times, self.locations, self.probe_paths = probeReadWrite.readPointProbes(path_generator, self.file_type, self.directory_parquet)
         else:
