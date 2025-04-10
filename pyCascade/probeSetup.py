@@ -54,10 +54,14 @@ class Probes:
         if name == None:
             name = self.name
     
-        probeCall = f"{self.type} NAME=$(probe_path)/{name:22} INTERVAL $(probe_int) "
+        probeCall = f"{self.type} NAME=$(probe_path)/{name:26} INTERVAL $(probe_int) "
 
         if self.type == "PROBE":
-            probeCall += f"GEOM FILE $(location_path)/{name + '.txt' :26}" 
+            probeCall += f"GEOM FILE $(location_path)/{name + '.txt' :30}" 
+            probeCall += f"VARS {vars}"
+        
+        elif self.type == "POINTCLOUD_PROBE":
+            probeCall += f"PRECISION FLOAT GEOM FILE $(location_path)/{name + '.txt' :30}" 
             probeCall += f"VARS {vars}"
         
         elif self.type == "VOLUMETRIC_PROBE":
