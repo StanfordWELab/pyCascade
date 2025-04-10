@@ -73,6 +73,35 @@ class ProbedGeom:
         removes probes with 0 points
         """
         self.probes = [probe for probe in self.probes if probe.tile.shape[0] != 0]
+
+    def projectProbes(self, 
+                      plane_normal, 
+                      plane_point, 
+                      projection_vector = None, 
+                      x_range = [-np.inf, np.inf], 
+                      y_range = [-np.inf, np.inf], 
+                      z_range = [-np.inf, np.inf], 
+                      nameInclude = "", 
+                      nameExclude = "100gecs",
+                      ):
+        """
+        projects probes onto a plane defined by the normal vector and along the projection vector
+        """
+        if projection_vector is None:
+            projection_vector = plane_normal
+        for probe in self.probes:
+            if nameInclude in probe.name and nameExclude not in probe.name:
+                plane_normal = np.array(plane_normal)
+                projection_vector = np.array(projection_vector)
+                plane_point = np.array(plane_point)
+                for i, point in enumerate(probe.tile):
+                    if x_range[0] <= point[0] <= x_range[1] and y_range[0] <= point[1] <= y_range[1] and z_range[0] <= point[2] <= z_range[1]:
+                        numerator = np.dot(plane_point - point, plane_normal)
+                        denominator = np.dot(projection_vector, plane_normal)
+                        if abs(denominator) > 1e-8:  # avoid divide by zero
+                            t = numerator / denominator
+                            projection = point + t * projection_vector
+                            probe.tile[i] = projection
     
     def writeProbesToSingleFile(self, directory, nameInclude = "", nameExclude = "100gecs"):
         self.removeZeroProbes()
@@ -225,7 +254,7 @@ def identify_openings(rooms_params):
 
 def makeRoof(l1, l2, w1, w2, h1, h2, extraProbeOffset = 0):
     """
-    prismoid roof with pointing towards y
+    prismoid roof with prismoid pointing towards y
     """
     geom = prismoid([l1,w1], [l2,w2], h=h1)
     geom = xrot(-90)(geom)
@@ -319,7 +348,7 @@ def openWalls(rooms_params, w, h, nprobes_w, nprobes_h):
 
     return sumProbedGeom(walls_list)
 
-def makeSkylights(rooms_params, w, h, t, nprobes_w, nprobes_h, extraProbeOffset = 0):
+def makeSkylights(rooms_params, w, h, t, nprobes_w, nprobes_h, extraProbeOffset = 0, spacing = "flux"):
     x = rooms_params['x']
     y = rooms_params['y']
     z = rooms_params['z']
@@ -334,7 +363,7 @@ def makeSkylights(rooms_params, w, h, t, nprobes_w, nprobes_h, extraProbeOffset 
         size = (w, wthick, h)
         nprobes = (nprobes_w, 1, nprobes_h)
         name = f"skylight_{i}-{k}"
-        skylight = makeProbedCube(size, nprobes, name, True)
+        skylight = makeProbedCube(size, nprobes, name, True, spacing = spacing)
         skylight += ProbedGeom(cube((w, t, h), True))
         extraProbeTile = np.array([[0, extraProbeOffset, 0]])
         if extraProbeOffset != 0:
