@@ -131,6 +131,8 @@ class Probes(utils.Helper):
         self.probe_type = probe_type
         self.file_type = file_type
         self.directory = directory
+        self.probe_times = None
+        self.unique_steps_indexes = None
         if directory_parquet == None:
             self.directory_parquet = f'{directory}/../probesOut_parquet'
         else:
@@ -234,7 +236,10 @@ class Probes(utils.Helper):
         processing = None):
 
         quants, stack, names, steps = [self.get_input(input) for input in [quants, stack, names, steps]]
-        t_data = self.probe_times.loc[steps]
+        if self.probe_times == None:
+            tdata = None
+        else:
+            t_data = self.probe_times.loc[steps]
         st = utils.start_timer()
         processed_data  = {}
         for name in names:
@@ -257,8 +262,9 @@ class Probes(utils.Helper):
                 valid_steps = df.index.intersection(steps) # Handles differences created by stopping run during IO by ignoring some steps, should be a minor effect on result
                 df = df.loc[valid_steps]
             return df
-    
-        processed_data = utils.dict_apply(index_unique_steps)(processed_data)
+
+        if self.unique_steps_indexes is not None:
+            processed_data = utils.dict_apply(index_unique_steps)(processed_data)
         if not processed_data:
             raise Exception("Requested data does not exist")
 
