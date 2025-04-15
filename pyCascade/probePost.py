@@ -236,7 +236,7 @@ class Probes(utils.Helper):
         processing = None):
 
         quants, stack, names, steps = [self.get_input(input) for input in [quants, stack, names, steps]]
-        if self.probe_times == None:
+        if self.probe_times is None:
             tdata = None
         else:
             t_data = self.probe_times.loc[steps]
