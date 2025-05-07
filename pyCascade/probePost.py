@@ -153,7 +153,7 @@ class Probes(utils.Helper):
 
         # get data dict and associated info 
         if self.probe_type == "POINTCLOUD_PROBES":
-            self.data, probe_names, probe_steps, probe_quants, probe_stack, self.probe_paths = probeReadWrite.readPointCloudProbes(path_generator, self.file_type)
+            self.data, probe_names, probe_steps, probe_quants, probe_stack, self.locations, self.probe_paths = probeReadWrite.readPointCloudProbes(path_generator, self.file_type)
         elif self.probe_type == "PROBES":
             self.data, probe_names, probe_steps, probe_quants, probe_stack, probe_times, self.locations, self.probe_paths = probeReadWrite.readPointProbes(path_generator, self.file_type, self.directory_parquet)
         else:
@@ -237,16 +237,20 @@ class Probes(utils.Helper):
 
         quants, stack, names, steps = [self.get_input(input) for input in [quants, stack, names, steps]]
         if self.probe_times is None:
-            tdata = None
+            t_data = None
         else:
             t_data = self.probe_times.loc[steps]
         st = utils.start_timer()
         processed_data  = {}
+        if self.probe_type == "POINTCLOUD_PROBES":
+            second_keys = steps
+        else:
+            second_keys = quants
         for name in names:
-            for quant in quants:
-                ddf = self.data[(name, quant)]
+            for second_key in second_keys:
+                ddf = self.data[(name, second_key)]
                 df = ddf.compute()
-                processed_data[(name, quant)] = df[stack]#.loc[steps[0]:steps[-1]]
+                processed_data[(name, second_key)] = df[stack]#.loc[steps[0]:steps[-1]]
 
             if self.probe_type == "FLUX_PROBES":
                 self.get_flux_probe_loc_area(name)

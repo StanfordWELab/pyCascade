@@ -12,7 +12,7 @@ from IPython.core.debugger import set_trace
 
 def read_probes_file_switch(filename, file_type = 'csv'):
     if file_type == 'csv':
-        if ".pcd" in filename: #POINTCLOUD_PROBE
+        if ".pcd" in filename or ".pxyz" in filename: #POINTCLOUD_PROBE
             ddf = dd.read_csv(filename, delim_whitespace=True)
         else:
             ddf = dd.read_csv(filename, delimiter = ' ', comment = "#",header = None, assume_missing=True, encoding = 'utf-8')
@@ -94,31 +94,35 @@ def csv_to_parquet(csv_path, parquet_path, overwrite = False):
     return
 
     
-def readPointCloudProbes(pathGenerator, filetype = "cvs"):
+def readPointCloudProbes(pathGenerator, file_type = "cvs"):
     """
     This is the remenants of old functionality preserved for future use. This will need to be updated/fixed before use.
     """
     probe_names = []
     probe_steps = []
     probe_paths = []
+    locations = {}
     
     # Initialize data structre
     my_dict = {}  # this will be a tuple indexed 1-level dictionary.
 
     for path in pathGenerator:
-        if ".pcd" not in path:
+        if ".pcd" not in path and ".pxyz" not in path:
             continue
+        probe_paths.append(path)
         file_name = path.split('/')[-1]  # get the local file name
         file_name = file_name.replace(".parquet", '')
         probe_info = file_name.split('.')
-        probe_name, probe_step, _ = probe_info[:]
-        
+        probe_name, probe_step = probe_info[:2]
+        if probe_step == 'pxyz':
+            locations[probe_name] = read_locations(path, file_type)
+            continue
+
         probe_step = int(probe_step)
-        my_dict[(probe_name, probe_step)] = read_probes_file_switch(path, filetype) #read_pointcloud_probes(path)
+        my_dict[(probe_name, probe_step)] = read_probes_file_switch(path, file_type) #read_pointcloud_probes(path)
 
         probe_names.append(probe_name)
         probe_steps.append(probe_step) 
-        probe_paths.append(path)
 
     probe_names = utils.sort_and_remove_duplicates(probe_names)
     
@@ -130,7 +134,7 @@ def readPointCloudProbes(pathGenerator, filetype = "cvs"):
         probe_stack = np.append(probe_stack, representative_df.index.values)
         probe_quants = np.append(probe_quants, representative_df.columns.values)
 
-    return my_dict, probe_names, probe_steps, probe_quants, probe_stack, probe_paths
+    return my_dict, probe_names, probe_steps, probe_quants, probe_stack, locations, probe_paths
 
 
 def readPointProbes(pathGenerator, file_type = 'csv', directory_parquet = None):
@@ -143,27 +147,34 @@ def readPointProbes(pathGenerator, file_type = 'csv', directory_parquet = None):
     locations = {}
 
     for path in pathGenerator:
-        if ".pcp" in path or ".fp" in path:
+        if ".pcp" in path or ".fp" in path or ".svp" in path:
             continue
         probe_paths.append(path)
         file_name = path.split('/')[-1]  # get the local file name
         probe_info = file_name.replace(".parquet", '')
         probe_info = probe_info.split('.')
-        probe_name, probe_quant = probe_info[:]
+        probe_name, probe_quant = probe_info[:2]
         if probe_quant == 'README':
             locations[probe_name] = read_locations(path, file_type)
             continue
         # store the pcd path and pcd reader function
             
         my_dict[(probe_name, probe_quant)], step, time = read_probes(path, file_type)
-            
-        if 'col' in probe_name: # assuming the cols are run in all runs
+
+        found_col = False    
+        if 'col' in probe_name: # try to get from cols
+            found_col = True
             probe_steps = step
             probe_times = time
             probe_stack = my_dict[(probe_name, probe_quant)].columns.values
 
         probe_names.append(probe_name)
         probe_quants.append(probe_quant) 
+
+    if found_col == False: # if no cols, just take the last one
+            probe_steps = step
+            probe_times = time
+            probe_stack = my_dict[(probe_name, probe_quant)].columns.values
 
     probe_steps = probe_steps.compute().values
     probe_names = utils.sort_and_remove_duplicates(probe_names)
