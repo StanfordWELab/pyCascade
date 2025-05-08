@@ -112,11 +112,15 @@ def linear_quadrature(data_dict, t_data=None):
     return utils.dict_apply(df_func)(data_dict)
 
 # use to define function with mul preset
-def mul_names(data_dict, names, mul, t_data=None):
+def mul_names(data_dict, names, mul, qois = None, t_data=None):
     for k, v in data_dict.items():
         name, _ = k
         if name in names:
-            data_dict[k] = mul*v
+            if qois is None:
+                qois = v.columns
+            else:
+                qois = [q for q in v.columns if q in qois]
+            data_dict[k][qois] = mul*v[qois]
     return data_dict
 
 class Probes(utils.Helper):
