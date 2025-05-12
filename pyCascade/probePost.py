@@ -117,10 +117,10 @@ def mul_names(data_dict, names, mul, qois = None, t_data=None):
         name, _ = k
         if name in names:
             if qois is None:
-                qois = v.columns
+                mul_qois = v.columns
             else:
-                qois = [q for q in v.columns if q in qois]
-            data_dict[k][qois] = mul*v[qois]
+                mul_qois = [q for q in v.columns if q in qois]
+            data_dict[k][mul_qois] = mul*v[mul_qois]
     return data_dict
 
 class Probes(utils.Helper):
