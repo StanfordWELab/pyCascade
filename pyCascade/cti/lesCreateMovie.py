@@ -370,170 +370,6 @@ def get_varTypes(image_path, params):
     return varslist, cmaplist, cb_names, data_min, data_max, titles
     
 
-def setup_options():
-    """Set up the configuration options"""
-    inpOpts = [
-        {"varName":"help",
-        "shortName":"h","longName":"help","default":False,"type":"boolean",
-        "helpString":"list help and exit"},
-        {"varName":"infile",
-        "shortName":"infile","longName":"infile","default":'',"type":"string",
-        "helpString":"input png images, e,g, '/path/to/images/T*png'"},
-        {"varName":"prefix",
-        "shortName":"prefix","longName":"prefix","default":'./',"type":"string",
-        "helpString":"path where outputs will saved."},
-        {"varName":"movie_filename",
-        "shortName":"movie_filename","longName":"movie_filename","default":'output_video',"type":"string",
-        "helpString":"provide the output file name without the extension. it will be .mp4"}, 
-        {"varName":"fps",
-        "shortName":"fps","longName":"frames_per_second","default":10,"type":"integer",
-        "helpString":"choose frames per second"},
-        {"varName":"add_cbar_movie",
-        "shortName":"add_cbar_movie","longName":"add_cbar_movie","default":True,"type":"boolean",
-        "helpString":"Should colorbar be added in the movie?"}, 
-        {"varName":"colormap",
-        "shortName":"colormap","longName":"colormap_planar","default":'jet',"type":"string",
-        "helpString":"choose a colormap"},
-        {"varName":"colormap_iso",
-        "shortName":"colormap_iso","longName":"colormap_iso","default":'viridis',"type":"string",
-        "helpString":"choose a colormap for iso surfaces"},
-        {"varName":"colormap_surf",
-        "shortName":"colormap_surf","longName":"colormap_surf","default":'coolwarm',"type":"string",
-        "helpString":"choose a surface colormap"},
-        {"varName":"colormap_particle",
-        "shortName":"colormap_particle","longName":"colormap_particle","default":'hot',"type":"string",
-        "helpString":"choose a colormap for the particles"},
-        {"varName":"cbar_title",
-        "shortName":"cbar_title","longName":"colormap_title_planar","default":'planar_data',"type":"string",
-        "helpString":"choose a cbar title for planar data"},
-        {"varName":"cbar_iso_title",
-        "shortName":"cbar_iso_title","longName":"cbar_iso_title","default":'iso_data',"type":"string",
-        "helpString":"choose a cbar title for iso data"},
-        {"varName":"cbar_surf_title",
-        "shortName":"cbar_surf_title","longName":"cbar_surf_title","default":'surface_data',"type":"string",
-        "helpString":"choose a cbar title for surface data"},
-        {"varName":"cbar_particle_title",
-        "shortName":"cbar_particle_title","longName":"cbar_particle_title","default":'particle data',"type":"string",
-        "helpString":"choose a cbar title for the particle data"},
-        {"varName":"cbar_width_frac",
-        "shortName":"cbar_width_frac","longName":"cbar_width_frac","default":0.2,"type":"float",
-        "helpString":"choose cbar width fraction comapared to the original image width"},
-        {"varName":"cbar_height_frac",
-        "shortName":"cbar_height_frac","longName":"cbar_height_frac","default":0.1,"type":"float",
-        "helpString":"choose cbar height fraction comapared to the original image height"},
-        {"varName":"cbar_orient",
-        "shortName":"cbar_orient","longName":"cbar_orientation","default":'horizontal',"type":"string",
-        "helpString":"choose colorbar orientation: horizontal or vertical"},
-        {"varName":"nticks",
-        "shortName":"nticks","longName":"nticks","default":5,"type":"integer",
-        "helpString":"choose number of ticks in each colorbar"},
-        {"varName":"fontsize",
-        "shortName":"fontsize","longName":"fontsize","default":12,"type":"integer",
-        "helpString":"choose fontsize for the ticklabels and title in each colorbar"},
-    ]
-    
-    # Create option table
-    optTable = so.scrOpts(inpOpts)
-    
-    return optTable
-
-def set_default_options(optTable, 
-                        image_base="u_y1p5",
-                        image_folder="//scratch/users/nbachand/Cascade/city_block_cfd/CHARLES/config2/R53/Images",
-                        video_folder="/oak/stanford/groups/gorle/nbachand/Cascade/city_block_cfd/CHARLES/config2/R53/Videos",
-                        video_suffix="_pyVid",
-                        prefix="",
-                        fps=30,
-                        colormap="plasma",
-                        colormap_iso="seismic",
-                        colormap_surf="coolwarm",
-                        colormap_particle="hot",
-                        cbar_orient="vertical",
-                        cbar_width_frac=0.02,
-                        cbar_height_frac=0.45,
-                        fontsize=14,
-                        add_cbar_movie=True,
-                        nticks=5,
-                        cbar_title="planar_data",
-                        cbar_iso_title="iso_data",
-                        cbar_surf_title="surface_data",
-                        cbar_particle_title="particle data"):
-    """Set default options with customizable parameters
-    
-    Args:
-        optTable: The option table to populate
-        image_base: Base name for input images
-        image_folder: Folder containing input images
-        video_folder: Folder where output video will be saved
-        video_suffix: Suffix to add to video filename
-        prefix: Prefix for output files
-        fps: Frames per second for output video
-        colormap: Colormap for planar data
-        colormap_iso: Colormap for iso surfaces
-        colormap_surf: Colormap for surface data
-        colormap_particle: Colormap for particle data
-        cbar_orient: Orientation of colorbars ("horizontal" or "vertical")
-        cbar_width_frac: Width fraction of colorbar compared to image
-        cbar_height_frac: Height fraction of colorbar compared to image
-        fontsize: Font size for colorbar text
-        add_cbar_movie: Whether to add colorbars to the movie
-        nticks: Number of ticks on colorbars
-        cbar_title: Title for planar data colorbar
-        cbar_iso_title: Title for iso data colorbar
-        cbar_surf_title: Title for surface data colorbar
-        cbar_particle_title: Title for particle data colorbar
-    
-    Returns:
-        The populated option table
-    """
-    video_base = f"{image_base}{video_suffix}"
-
-    # Set options directly
-    optTable.setOptionVal("infile", f"{image_folder}/{image_base}*.png")
-    optTable.setOptionVal("movie_filename", f"{video_folder}/{video_base}")
-    optTable.setOptionVal("prefix", prefix)
-    optTable.setOptionVal("fps", fps)
-    optTable.setOptionVal("add_cbar_movie", add_cbar_movie)
-    optTable.setOptionVal("colormap", colormap)
-    optTable.setOptionVal("colormap_iso", colormap_iso)
-    optTable.setOptionVal("colormap_surf", colormap_surf)
-    optTable.setOptionVal("colormap_particle", colormap_particle)
-    optTable.setOptionVal("cbar_title", cbar_title)
-    optTable.setOptionVal("cbar_iso_title", cbar_iso_title)
-    optTable.setOptionVal("cbar_surf_title", cbar_surf_title)
-    optTable.setOptionVal("cbar_particle_title", cbar_particle_title)
-    optTable.setOptionVal("cbar_orient", cbar_orient)
-    optTable.setOptionVal("cbar_width_frac", cbar_width_frac)
-    optTable.setOptionVal("cbar_height_frac", cbar_height_frac)
-    optTable.setOptionVal("nticks", nticks)
-    optTable.setOptionVal("fontsize", fontsize)
-    
-    return optTable
-
-def get_options(optTable):
-    """Extract all options from the option table"""
-    params = {
-        "infile": optTable.getOptionVal("infile"),
-        "prefix": optTable.getOptionVal("prefix"),
-        "movie_filename": optTable.getOptionVal("movie_filename"),
-        "fps": optTable.getOptionVal("fps"),
-        "add_cbar_movie": optTable.getOptionVal("add_cbar_movie"),
-        "colormap": optTable.getOptionVal("colormap"),
-        "colormap_iso": optTable.getOptionVal("colormap_iso"),
-        "colormap_surf": optTable.getOptionVal("colormap_surf"),
-        "colormap_particle": optTable.getOptionVal("colormap_particle"),
-        "cbar_title": optTable.getOptionVal("cbar_title"),
-        "cbar_iso_title": optTable.getOptionVal("cbar_iso_title"),
-        "cbar_surf_title": optTable.getOptionVal("cbar_surf_title"),
-        "cbar_particle_title": optTable.getOptionVal("cbar_particle_title"),
-        "cbar_width_frac": optTable.getOptionVal("cbar_width_frac"),
-        "cbar_height_frac": optTable.getOptionVal("cbar_height_frac"),
-        "cbar_orient": optTable.getOptionVal("cbar_orient"),
-        "nticks": optTable.getOptionVal("nticks"),
-        "fontsize": optTable.getOptionVal("fontsize"),
-    }
-    return params
-
 def validate_parameters(params):
     """Check the parameters for validity"""
     if params['infile'] == '':
@@ -578,6 +414,13 @@ def print_parameters(params):
 
 def create_video(params):
     """Main function to create the video"""
+    # Check and print params
+    video_base = f'{params["image_base"]}{params["video_suffix"]}'
+    params["infile"] = f'{params["image_folder"]}/{params["image_base"]}*.png'
+    params["movie_filename"] = f'{params["video_folder"]}/{video_base}'
+    params = validate_parameters(params)
+    print_parameters(params)
+
     # Define parameters that were previously global
     background_color = [255, 255, 255] #[73, 175, 205]  # bahama blue rgb
     fontsize = params['fontsize']
@@ -654,21 +497,37 @@ def create_video(params):
     out.release()
     print(f"Video saved to {params['output']}")
 
+def get_default_params():
+    params = {
+        "image_base":"u_y1p5",
+        "image_folder":"//scratch/users/nbachand/Cascade/city_block_cfd/CHARLES/config2/R53/Images",
+        "video_folder":"/oak/stanford/groups/gorle/nbachand/Cascade/city_block_cfd/CHARLES/config2/R53/Videos",
+        "video_suffix":"_pyVid",
+        "prefix":"",
+        "fps":30,
+        "colormap":"plasma",
+        "colormap_iso":"seismic",
+        "colormap_surf":"coolwarm",
+        "colormap_particle":"hot",
+        "cbar_orient":"vertical",
+        "cbar_width_frac":0.02,
+        "cbar_height_frac":0.45,
+        "fontsize":14,
+        "add_cbar_movie":True,
+        "nticks":5,
+        "cbar_title":"planar_data",
+        "cbar_iso_title":"iso_data",
+        "cbar_surf_title":"surface_data",
+        "cbar_particle_title":"particle data"
+    }
+
+    return params
+
 def main():
     """Main function to orchestrate the video creation process"""
     # Set up options
-    optTable = setup_options()
-    
-    # Set default options (can be commented out if using command line args)
-    optTable = set_default_options(optTable)
-    
-    # Get and validate parameters
-    params = get_options(optTable)
-    params = validate_parameters(params)
-    
-    # Print parameters
-    print_parameters(params)
-    
+    params = get_default_params()
+
     # Create the video
     create_video(params)
 
