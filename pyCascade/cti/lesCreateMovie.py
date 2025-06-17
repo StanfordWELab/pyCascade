@@ -282,14 +282,14 @@ def cbar_padding(cb_loc, img_h, img_w, cb_images, nvar, cbar_orient, background_
 
     return padded_cb
 
-def process_image(image_path, varlist, cmaplist, data_min = None, data_max = None):
+def process_image(image_path, varlist, cmaplist=None, data_min=None, data_max=None):
 
     im = cti_image.Image(image_path)
     im.getImageMetadataAndChunks()
     img = im.getRGB()
     for v, var in enumerate(varlist):
         new_image = img.copy()
-        if im.daTa is not None: # and im.flAg is not None:
+        if im.daTa is not None and cmaplist is not None: # and im.flAg is not None:
             color_mapped_img = plt.get_cmap(cmaplist[v])(im.chunks['daTa']/255.0)
         else:
             img_gs = np.mean(new_image, axis=-1) / 255
@@ -298,7 +298,11 @@ def process_image(image_path, varlist, cmaplist, data_min = None, data_max = Non
                 var_max = im.metadata[var]['range'][1]
                 img_gs = img_gs * (var_max - var_min) + var_min # scale up with local range
                 img_gs = (img_gs - data_min[v]) / (data_max[v] - data_min[v]) # scale down with global range
-            color_mapped_img = plt.get_cmap(cmaplist[v])(img_gs)
+
+            if cmaplist is not None:
+                color_mapped_img = plt.get_cmap(cmaplist[v])(img_gs)
+            else:
+                color_mapped_img = np.stack((img_gs, img_gs, img_gs), axis=-1)
 
         color_mapped_img = (color_mapped_img[:,:,:3] * 255).astype(np.uint8)
 
