@@ -71,7 +71,8 @@ def create_image_with_colorbar(
         combined_image = np.hstack((image, cb_resized[0]))
     
     # Save the combined image
-    cv.imwrite(output_path, combined_image)
+    if output_path is not None:
+        cv.imwrite(output_path, combined_image)
     print(f"Saved image with colorbar to {output_path}")
     
     # Clean up temporary file
