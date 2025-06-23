@@ -7,7 +7,7 @@ sys.path.append('/home/groups/gorle/codes/fidelityCharles_2024.1/fidelityCharles
 import cti_image
 from pyCascade.cti.lesCreateMovie import (
     process_image, create_cbar, cbar_padding,
-    setup_options, set_default_options, get_options, validate_parameters
+    validate_parameters
 )
 
 from matplotlib import pyplot as plt
