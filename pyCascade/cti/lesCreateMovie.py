@@ -299,11 +299,10 @@ def process_image(image_path, varlist, cmaplist=None, data_min=None, data_max=No
                 img_gs = img_gs * (var_max - var_min) + var_min # scale up with local range
                 img_gs = (img_gs - data_min[v]) / (data_max[v] - data_min[v]) # scale down with global range
 
-            if cmaplist is not None:
-                color_mapped_img = plt.get_cmap(cmaplist[v])(img_gs)
+            if cmaplist is None:
+                return np.clip(img_gs, 0, 1)  # if not colormap, return as float array 
             else:
-                img_gs = np.clip(img_gs, 0, 1)  # ensure values are between 0 and 1
-                color_mapped_img = np.stack((img_gs, img_gs, img_gs), axis=-1)
+                color_mapped_img = plt.get_cmap(cmaplist[v])(img_gs)
 
         color_mapped_img = (color_mapped_img[:,:,:3] * 255).astype(np.uint8)
 
