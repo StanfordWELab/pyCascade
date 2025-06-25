@@ -20,6 +20,15 @@ import glob
 # func definitions
 #---------------------------------------------------------------------------
 
+def get_nticks(data_min, data_max):
+    data_range = data_max - data_min
+    range_oom = int(np.floor(np.log10(data_range)))
+    data_range /= 10**range_oom
+    n_ticks = np.ceil(data_range) + 1
+    if n_ticks <= 2:
+        n_ticks = 3
+    return int(np.ceil(data_range) + 1)
+
 def create_cbar(data_min, data_max, cm, nticks, title, cb_image_name, cb_w, cb_h, cbar_orient, 
                 background_color=[73, 175, 205], fontsize=14):
     """Create a colorbar image
@@ -44,6 +53,8 @@ def create_cbar(data_min, data_max, cm, nticks, title, cb_image_name, cb_w, cb_h
     fig.subplots_adjust(bottom=0.3)
 
     fig.patch.set_facecolor((background_color[0]/255, background_color[1]/255, background_color[2]/255))
+    if nticks is None:
+        nticks = get_nticks(data_min, data_max)
     ticks = np.linspace(data_min, data_max, nticks)
     if data_max - data_min > 1:
         ticks = np.round(ticks).astype(int)
@@ -522,7 +533,7 @@ def get_default_params():
         "cbar_height_frac":0.45,
         "fontsize":14,
         "add_cbar_movie":True,
-        "nticks":5,
+        "nticks":None,
         "cbar_title":"planar_data",
         "cbar_iso_title":"iso_data",
         "cbar_surf_title":"surface_data",

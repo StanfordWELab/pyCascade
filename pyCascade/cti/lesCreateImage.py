@@ -7,7 +7,7 @@ sys.path.append('/home/groups/gorle/codes/fidelityCharles_2024.1/fidelityCharles
 import cti_image
 from pyCascade.cti.lesCreateMovie import (
     process_image, create_cbar, cbar_padding,
-    validate_parameters
+    validate_parameters, get_nticks
 )
 
 from matplotlib import pyplot as plt
@@ -21,7 +21,7 @@ def create_image_with_colorbar(
     image, output_path, cmaplist, data_min, data_max, 
     cbar_title="Data", cbar_orient="vertical",
     cbar_width_frac=0.05, cbar_height_frac=0.8,
-    nticks=5, fontsize=14,
+    nticks=None, fontsize=14,
     background_color=[255, 255, 255] # white
 ):
     """Create and save an image with a properly formatted colorbar
@@ -53,6 +53,10 @@ def create_image_with_colorbar(
     
     # Create temporary colorbar file
     temp_cbar_path = "temp_colorbar.png"
+
+    # infer number of ticks
+    if nticks is None:
+       nticks = get_nticks(data_min[0], data_max[0])
     
     # Create colorbar - passing parameters explicitly
     create_cbar(data_min[0], data_max[0], cmaplist[0], nticks, cbar_title, 
