@@ -302,6 +302,7 @@ def process_image(image_path, varlist, cmaplist=None, data_min=None, data_max=No
             if cmaplist is not None:
                 color_mapped_img = plt.get_cmap(cmaplist[v])(img_gs)
             else:
+                img_gs = np.clip(img_gs, 0, 1)  # ensure values are between 0 and 1
                 color_mapped_img = np.stack((img_gs, img_gs, img_gs), axis=-1)
 
         color_mapped_img = (color_mapped_img[:,:,:3] * 255).astype(np.uint8)
@@ -411,6 +412,7 @@ def print_parameters(params):
     st.scrPrint('  cbar_orient  = %s' % params['cbar_orient'])
     st.scrPrint('  nticks  = %s' % params['nticks'])
     st.scrPrint('  fontsize  = %s' % params['fontsize'])
+    st.scrPrint('  data_range  = %s' % params['data_range'])
 
 def create_video(params):
     """Main function to create the video"""
@@ -432,6 +434,13 @@ def create_video(params):
     # Get variable types and necessary information
     vars_list, cmaplist, cb_names, data_min, data_max, titles = get_varTypes(files[-1], params)
     nvar = len(vars_list)
+
+    # Replace data range if specified
+    data_range = params['data_range']
+    if data_range[0] is not None:
+        data_min = [data_range[0]]
+    if data_range[1] is not None:
+        data_max = [data_range[1]]
     
     # Process the last image to get dimensions
     last_image = process_image(files[-1], vars_list, cmaplist, data_min, data_max)
@@ -518,7 +527,8 @@ def get_default_params():
         "cbar_title":"planar_data",
         "cbar_iso_title":"iso_data",
         "cbar_surf_title":"surface_data",
-        "cbar_particle_title":"particle data"
+        "cbar_particle_title":"particle data",
+        "data_range": [None, None],
     }
 
     return params
