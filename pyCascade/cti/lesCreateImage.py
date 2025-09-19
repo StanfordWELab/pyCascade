@@ -1,8 +1,11 @@
 #%% 
 import sys
-sys.path.append('/home/groups/gorle/codes/fidelityCharles_2024.1/fidelityCharles_2024.2_CTI/scripts')
-sys.path.append('/home/groups/gorle/codes/fidelityCharles_2024.1/fidelityCharles_2024.2_CTI/scripts/cti')
-sys.path.append('/home/groups/gorle/codes/fidelityCharles_2024.1/fidelityCharles_2024.2_CTI/scripts/pythonModules')
+import os
+CTI_CASCADE = os.getenv('CTI_CASCADE')
+print(f'CTI_CASCADE={CTI_CASCADE}')
+sys.path.append(f'{CTI_CASCADE}/scripts')
+sys.path.append(f'{CTI_CASCADE}/scripts/cti')
+sys.path.append(f'{CTI_CASCADE}/scripts/pythonModules')
 
 import cti_image
 from pyCascade.cti.lesCreateMovie import (
