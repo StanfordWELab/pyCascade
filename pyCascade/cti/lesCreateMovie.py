@@ -294,11 +294,15 @@ def cbar_padding(cb_loc, img_h, img_w, cb_images, nvar, cbar_orient, background_
     return padded_cb
 
 def process_image(image_path, varlist, cmaplist=None, data_min=None, data_max=None):
-
     im = cti_image.Image(image_path)
     im.getImageMetadataAndChunks()
     img = im.getRGB()
     for v, var in enumerate(varlist):
+        if im.flAg is not None:
+            mask = im.getMask(var)
+        else:
+            mask = im.zoNe > 100
+
         new_image = img.copy()
         if im.daTa is not None and cmaplist is not None: # and im.flAg is not None:
             color_mapped_img = plt.get_cmap(cmaplist[v])(im.chunks['daTa']/255.0)
@@ -311,16 +315,13 @@ def process_image(image_path, varlist, cmaplist=None, data_min=None, data_max=No
                 img_gs = (img_gs - data_min[v]) / (data_max[v] - data_min[v]) # scale down with global range
 
             if cmaplist is None:
-                return np.clip(img_gs, 0, 1)  # if not colormap, return as float array 
+                img_gs = np.clip(img_gs, 0, 1)  # if not colormap, return as float array
+                img_gs[mask == False] = 2 # set masked to geos code
+                return img_gs  # if not colormap, return as float array 
             else:
                 color_mapped_img = plt.get_cmap(cmaplist[v])(img_gs)
 
         color_mapped_img = (color_mapped_img[:,:,:3] * 255).astype(np.uint8)
-
-        if im.flAg is not None:
-            mask = im.getMask(var)
-        else:
-            mask = im.zoNe > 100
 
         new_image[mask] = color_mapped_img[mask]
         color_mapped_img = cv.cvtColor(new_image.astype(np.uint8), cv.COLOR_RGB2BGR)
