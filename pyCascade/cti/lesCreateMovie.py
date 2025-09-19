@@ -6,7 +6,7 @@ sys.path.append('/home/groups/gorle/codes/fidelityCharles_2024.1/fidelityCharles
 
 
 import cti_image
-import  scrOpts as so
+# import  scrOpts as so
 import  scrTools as st
 
 
