@@ -1,11 +1,11 @@
 #%% 
 import sys
 import os
-CTI_CASCADE = os.getenv('CTI_CASCADE')
-print(f'CTI_CASCADE={CTI_CASCADE}')
-sys.path.append(f'{CTI_CASCADE}/scripts')
-sys.path.append(f'{CTI_CASCADE}/scripts/cti')
-sys.path.append(f'{CTI_CASCADE}/scripts/pythonModules')
+CTI_SCRIPTS = os.getenv('CTI_SCRIPTS')
+print(f'CTI_SCRIPTS={CTI_SCRIPTS}')
+sys.path.append(f'{CTI_SCRIPTS}')
+sys.path.append(f'{CTI_SCRIPTS}/cti')
+sys.path.append(f'{CTI_SCRIPTS}/pythonModules')
 
 import cti_image
 from pyCascade.cti.lesCreateMovie import (

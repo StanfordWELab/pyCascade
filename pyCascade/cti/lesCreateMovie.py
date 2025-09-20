@@ -1,8 +1,11 @@
 # modified from /home/groups/gorle/codes/fidelityCharles_2024.1/fidelityCharles_2024.2_CTI/scripts/lesCreateMovie
 import sys
-sys.path.append('/home/groups/gorle/codes/fidelityCharles_2024.1/fidelityCharles_2024.2_CTI/scripts')
-sys.path.append('/home/groups/gorle/codes/fidelityCharles_2024.1/fidelityCharles_2024.2_CTI/scripts/cti')
-sys.path.append('/home/groups/gorle/codes/fidelityCharles_2024.1/fidelityCharles_2024.2_CTI/scripts/pythonModules')
+import os
+CTI_SCRIPTS = os.getenv('CTI_SCRIPTS')
+print(f'CTI_SCRIPTS={CTI_SCRIPTS}')
+sys.path.append(f'{CTI_SCRIPTS}')
+sys.path.append(f'{CTI_SCRIPTS}/cti')
+sys.path.append(f'{CTI_SCRIPTS}/pythonModules')
 
 
 import cti_image
