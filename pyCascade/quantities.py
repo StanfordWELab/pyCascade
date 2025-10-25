@@ -289,7 +289,7 @@ def plot_prms(qty_dict: dict):
     ax.legend()
     return fig, ax
 
-def plot_power_spectra(qty_dict: dict, var = 'Euu', initial_offset = 10**(-1), scaling:str = "-5/3"):
+def plot_power_spectra(qty_dict: dict, var = 'Euu', initial_offset = 10**(-1), scaling:str = "-5/3", vonKarman=False):
     fig, ax = plt.subplots()
     colors = list(mcolors.TABLEAU_COLORS)# XKCD_COLORS)
     linestyles = [
@@ -316,8 +316,16 @@ def plot_power_spectra(qty_dict: dict, var = 'Euu', initial_offset = 10**(-1), s
         y = qty.y
         plot_qty = getattr(qty, var)
         for j, yval in enumerate(y):
-            ax.loglog(qty.f, plot_qty[:,j], linestyle  = linestyles[j][1], lw =1 , color = colors[i], label = f'y = {name.replace("_", " ")}, y={yval:.0f} [m]')
-    ax.loglog(qty.f, initial_offset*qty.f**(eval(scaling)), label = scaling)
+            f = qty.f
+            E = plot_qty[:,j]
+            ax.loglog(f, E, linestyle  = linestyles[j][1], lw =1 , color = colors[i], label = f'y = {name.replace("_", " ")}, y={yval:.2f} [m]')
+            if vonKarman == True:
+                f_norm = f * qty.Lx[j] / qty.meanU.values[j]
+                VKS = 4*f_norm/(1+70.8*f_norm**2)**(5/6)
+                VKS *= np.var(qty.uPrime.iloc[:,j]) / f
+                ax.loglog(f, VKS, linestyle  = linestyles[j][1], lw =1 , color = 'k', label = f'VKS, y={yval:.2f} [m]')
+    if vonKarman == False:
+        ax.loglog(qty.f, initial_offset*qty.f**(eval(scaling)), label = scaling)
     ax.legend()
     ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     ax.set_xlabel("frequency $[1/s]$")
