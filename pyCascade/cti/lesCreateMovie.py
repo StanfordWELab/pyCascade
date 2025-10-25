@@ -315,6 +315,8 @@ def process_image(image_path, varlist, cmaplist=None, data_min=None, data_max=No
                 var_min = im.metadata[var]['range'][0]
                 var_max = im.metadata[var]['range'][1]
                 img_gs = img_gs * (var_max - var_min) + var_min # scale up with local range
+                img_median = np.median(img_gs[mask])
+                print(f'var={var}, var_min={var_min}, var_max={var_max}, data_min={data_min[v]}, data_max={data_max[v]}, img_median={img_median}')
                 img_gs = (img_gs - data_min[v]) / (data_max[v] - data_min[v]) # scale down with global range
 
             if cmaplist is None:
