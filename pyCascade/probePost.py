@@ -291,6 +291,10 @@ class Probes(utils.Helper):
             steps = "self.probe_steps", 
             quants = "self.probe_quants", 
             stack = "np.s_[::]", 
+            u = "comp(u,0)",
+            v = "comp(u,1)",
+            w = "comp(u,2)",
+            p = "p",
             processing = None
             ):
         
@@ -303,10 +307,10 @@ class Probes(utils.Helper):
             qty.loadData(processed_data,
                            self.probe_times[steps],
                            theta_wind = theta_wind,
-                           u_str = (name, 'comp(u,0)'), 
-                           v_str = (name, 'comp(u,1)'), 
-                           w_str = (name, 'comp(u,2)'), 
-                           p_str = (name, 'p'), 
+                           u_str = (name, u), 
+                           v_str = (name, v), 
+                           w_str = (name, w), 
+                           p_str = (name, p), 
                            )
             qty.set_y(self.locations[name]['y'].values[stack])
             qty_dict[name] = qty
