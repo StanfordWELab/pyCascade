@@ -6,6 +6,7 @@ import scipy as sp
 from matplotlib import pyplot as plt
 import matplotlib.colors as mcolors
 from IPython.core.debugger import set_trace
+import copy
 
 
 @dask.delayed
@@ -278,11 +279,14 @@ def plot_turbulence_intensities(qty_dict: dict):
     ax[2].set_xlabel('Iw')
     return fig, ax
 
-def plot_prms(qty_dict: dict):
+def plot_prms(qty_dict: dict, Cp = False, rho=1.225):
     fig, ax = plt.subplots(1,1)
     for name, qty in qty_dict.items():
-        y = qty.y
-        ax.plot(qty.prms, y, '-', label = name)
+        y = copy.copy(qty.y)
+        x = copy.copy(qty.prms)
+        if Cp:
+            x /= 0.5 * rho * qty.meanU**2
+        ax.plot(x, y, '-', label = name)
 
     ax.set_ylabel('y [m]')
     ax.set_xlabel('Prms [Pa]')
