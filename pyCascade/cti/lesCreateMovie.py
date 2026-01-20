@@ -59,7 +59,7 @@ def create_cbar(data_min, data_max, cm, nticks, title, cb_image_name, cb_w, cb_h
     if nticks is None:
         nticks = get_nticks(data_min, data_max)
     ticks = np.linspace(data_min, data_max, nticks)
-    if data_max - data_min > 1:
+    if (data_max - data_min) % 1 == 0:
         ticks = np.round(ticks).astype(int)
     else:
         ticks = np.round(ticks, decimals=3)
@@ -296,7 +296,7 @@ def cbar_padding(cb_loc, img_h, img_w, cb_images, nvar, cbar_orient, background_
 
     return padded_cb
 
-def process_image(image_path, varlist, cmaplist=None, data_min=None, data_max=None):
+def process_image(image_path, varlist, cmaplist=None, data_min=None, data_max=None, verbose=False):
     im = cti_image.Image(image_path)
     im.getImageMetadataAndChunks()
     img = im.getRGB()
@@ -308,23 +308,25 @@ def process_image(image_path, varlist, cmaplist=None, data_min=None, data_max=No
 
         new_image = img.copy()
         if im.daTa is not None and cmaplist is not None: # and im.flAg is not None:
-            color_mapped_img = plt.get_cmap(cmaplist[v])(im.chunks['daTa']/255.0)
+            daTa = im.chunks['daTa']
         else:
-            img_gs = np.mean(new_image, axis=-1) / 255
-            if data_min is not None and data_max is not None: 
-                var_min = im.metadata[var]['range'][0]
-                var_max = im.metadata[var]['range'][1]
-                img_gs = img_gs * (var_max - var_min) + var_min # scale up with local range
-                img_median = np.median(img_gs[mask])
+            daTa = np.mean(new_image, axis=-1)
+        img_gs = daTa / 255
+        if data_min is not None and data_max is not None: 
+            var_min = im.metadata[var]['range'][0]
+            var_max = im.metadata[var]['range'][1]
+            img_gs = img_gs * (var_max - var_min) + var_min # scale up with local range
+            img_median = np.median(img_gs[mask])
+            if verbose:
                 print(f'var={var}, var_min={var_min}, var_max={var_max}, data_min={data_min[v]}, data_max={data_max[v]}, img_median={img_median}')
-                img_gs = (img_gs - data_min[v]) / (data_max[v] - data_min[v]) # scale down with global range
+            img_gs = (img_gs - data_min[v]) / (data_max[v] - data_min[v]) # scale down with global range
 
-            if cmaplist is None:
-                img_gs = np.clip(img_gs, 0, 1)  # if not colormap, return as float array
-                img_gs[mask == False] = 2 # set masked to geos code
-                return img_gs  # if not colormap, return as float array 
-            else:
-                color_mapped_img = plt.get_cmap(cmaplist[v])(img_gs)
+        if cmaplist is None:
+            img_gs = np.clip(img_gs, 0, 1)  # if not colormap, return as float array
+            img_gs[mask == False] = 2 # set masked to geos code
+            return img_gs  # if not colormap, return as float array 
+        else:
+            color_mapped_img = plt.get_cmap(cmaplist[v])(img_gs)
 
         color_mapped_img = (color_mapped_img[:,:,:3] * 255).astype(np.uint8)
 
